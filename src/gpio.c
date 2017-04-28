@@ -16,13 +16,29 @@ static void Led_Init(void)
     LedRedOff();
 }
 
+static void Lcd_Init(void)
+{
+	TRISDbits.TRISD0 = 0b0;		// Lcd背光控制引脚
+	TRISDbits.TRISD1 = 0b0;		// Lcd控制芯片的输出使能引脚
+	TRISDbits.TRISD2 = 0b0;		// Lcd_Bp
+	
+}
 
 void Gpio_Init(void)
 {
 	Led_Init();
+	Lcd_Init();
 	
-	TRISAbits.TRISA1 = 0b0;   // 按钮检测引脚
-	TRISDbits.TRISD6 = 0b0;   // 使能电源控制引脚
+	TRISAbits.TRISA1 = 0b1;   // 按钮检测引脚
+	TRISAbits.TRISA2 = 0b1;   // 短路保护信号
+
+	TRISBbits.TRISB4 = 0b0;		// output 2
+	TRISBbits.TRISB5 = 0b0;		// output 1
+	TRISCbits.TRISC0 = 0b0;		// 蜂鸣器
+	TRISDbits.TRISD4 = 0b0;		// 过流复位控制管脚
+	TRISDbits.TRISD6 = 0b0;   	// 使能电源控制引脚
+	TRISDbits.TRISD7 = 0b0;		// 充电使能管脚
+	TRISEbits.TRISE1 = 0b0;		// 放电使能管脚	
 }
 
 //============================================================================

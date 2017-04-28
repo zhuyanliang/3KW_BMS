@@ -379,63 +379,6 @@ void TskSOCMgt(void)
    Soc_StoreSoc();
 }
 
-
-//============================================================================
-// Function    ：TskRelayMgt
-// Description ：该函数根据pack的状态决定相应继电器的开关标志状态 执行周期2Ms
-// Parameters  ：none 
-// Returns     ：none
-//============================================================================
-void TskRelayMgt(void)
-{
-	switch(g_BatteryMode)
-	{
-	case IDLE:
-		g_RelayActFlg.precharge = FALSE;
-		g_RelayActFlg.positive = FALSE;
-		g_RelayActFlg.negative = FALSE;
-		break;
-
-	case PRECHARGE:  //预充电状态
-        if(g_PrechargeTimer >= (PRE_CHARGE_TIME - 30))
-        {
-            g_RelayActFlg.positive = TRUE;
-        }
-        else
-        {
-            g_RelayActFlg.positive = FALSE;
-        }
-		g_RelayActFlg.negative = TRUE;
-		g_RelayActFlg.precharge = TRUE;
-		break;
-    case BEFORECHARGE:    
-             g_RelayActFlg.precharge = FALSE;
-		g_RelayActFlg.positive = FALSE;
-		g_RelayActFlg.negative = TRUE;
-        break;
-	case DISCHARGE:  //放电状态
-	case CHARGE:  //充电状态
-		g_RelayActFlg.precharge = FALSE;
-		g_RelayActFlg.positive = TRUE;
-		g_RelayActFlg.negative = TRUE;	
-		break;
-
-	case PROTECTION:  //保护状态：可能是故障保护、放电截止保护、充电截止保护等等 
-		g_RelayActFlg.precharge = FALSE;
-		g_ProtectDelayCnt--;
-		if (0 == g_ProtectDelayCnt)
-		{              
-			g_RelayActFlg.positive = FALSE;
-			g_RelayActFlg.negative = FALSE;
-		}
-        break;
-	default:
-		break;
-	}
-}
-
-
-
 //============================================================================
 // Function    : TaskFaultStore
 // Description : 对错误信息进行管理

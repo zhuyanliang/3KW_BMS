@@ -169,15 +169,12 @@ void System_Init(void)
     
     ISR_Init();     // 中断处理程序初始化
     Timer_Init();
-    Led_Init();
+    Gpio_Init();
     
     g_BatteryMode 			= IDLE;
     g_ProtectDelayCnt 		= 0xffff;
     g_EnterLowPoweModeFlg 	= 0;	// 进入低功耗状态
     g_SystemWarning.all 	= 0;    // clear system warning flags
-    //g_SystemError.all 		= 0xf8;
-    g_CCS_MaxVoltage 		= 835;	// 设置充电器的最大电压 0.1V
-    g_CCS_MaxCurrent		= 150;	// 设置充电器的最大电流 0.1A
 
 #ifndef DEBUG
 	WDTCONbits.SWDTE = 0b1; 	// 开启看门狗

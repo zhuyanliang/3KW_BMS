@@ -25,7 +25,6 @@ extern "C" {
 #include "spi.h"
 #include "ecan.h"
 #include "ltc6803_3.h"
-#include "relay.h"
 #include "config.h"
 #include "detect.h"
 #include "manage.h"
