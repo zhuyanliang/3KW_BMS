@@ -138,11 +138,16 @@ void main(void)
     for(;;)
     {
 		// 查询优先级较高任务
+
+		TskCanRecMsgToBuf();
+		
         switch(taskList++)
         {
 		case 0:
+			TskAfeMgt();
 			break;
 		case 1:
+			TskCanMgt();
 			break;
 		case 2:
 			break;
@@ -168,9 +173,17 @@ void System_Init(void)
     SysClk_Init();  // 系统时钟初始化
     
     ISR_Init();     // 中断处理程序初始化
+    SPI_Init();      // SPI初始化
     Timer_Init();
     Gpio_Init();
-    
+
+    ECAN_Init();
+   
+	ClrWdt();
+
+    TskBatteryPra_Init();	// 电池部分参数的初始化
+    TskCan_Init();
+     
     g_BatteryMode 			= IDLE;
     g_ProtectDelayCnt 		= 0xffff;
     g_EnterLowPoweModeFlg 	= 0;	// 进入低功耗状态

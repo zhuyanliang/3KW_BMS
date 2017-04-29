@@ -835,63 +835,11 @@ void TskAfeMgt(void)
 
 void TskCanMgt(void)
 {
-	
 	TskCanProcessRxMsg();           // 处理接收数据
 	CAN_BroadcastBufUpdate();       // 将要发送的广播数据更新到发送缓冲区
 	TskCanSendTxBufMsg();           // 发送发送缓冲区数据
-
-	if(CHARGE == g_BatteryMode)
-	{
-		CAN_ChargerTskUpdate();			// 与充电器通信
-		// 根据充电器的电流精度  目前待定
-		// 使用CAN充电器时打开此功能
-		#ifdef CAN_CHARGE
-		CAN_ChargerTimeoutCheck();
-		#endif
-	}
 }
 
-#if 0
-//============================================================================
-// Function    : TskAmbTempMgt
-// Description : PCB板的温度
-// Parameters  : none
-// Returns     : 
-//============================================================================
-void TskAmbTempMgt(void)
-{
-	static uint8_t state = 0;
-
-	switch(state)
-	{
-	case 0:  // start conversion 
-		ADC_Convert(CHANNEL_TBAVAL);  
-		while(ADCON0bits.GO);  //等待转换完成，大约需要15us
-		g_AdcConvertValue.AmbTempRaw[g_AdcConvertValue.AmbTempIndex++] = ADC_GetConvertVal();
-
-		// 采集满一组就计算平均值
-		if(g_AdcConvertValue.AmbTempIndex >= 8)
-		{
-			g_AdcConvertValue.AmbTempAvg = ADC_AverageCalculate(g_AdcConvertValue.AmbTempRaw); 
-			g_AdcConvertValue.AmbTempIndex = 0;
-
-			state = 1;  // 下一周期计算全部采样值
-		}
-		break;
-
-	case 1:
-		g_BatteryParameter.AmbientTemp = ADCToTempVal(g_AdcConvertValue.AmbTempAvg);
-		state = 0;
-		break;
-	default: 
-		state = 0;
-		break;
-	}
-
-	DetectPCBOverTemp();
-}
-
-#endif
 
 //============================================================================
 // Function    ：BatteryModeSwitch
