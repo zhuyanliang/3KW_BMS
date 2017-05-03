@@ -54,68 +54,7 @@ void Soc_Init(void)
 //============================================================================
 void Soc_PowerOnAdjust(void)
 {
-	uint8_t i;
-	uint8_t soc_frmVol;
-	uint8_t soc_frmEerom;
-
-	/* 启动单体电压转换 */
-	Ltc6803_CellVoltCnvt(STCVAD_CMD, CELL_ALL);  
-	DelayMs(15);
-
-	// 获取所有电芯电压
-	if (Ltc6803_ReadAllCellVolt((Ltc6803_Parameter *)g_ArrayLtc6803Unit))
-	{
-		DetectMaxMinAvgCellVolt();
-	}
-
-	/* 上电根据单体电压查表计算出系统的当前soc值 */
-	if (g_BatteryParameter.CellVoltMax >= Soc_Volt_1C_Table[0].cell_volt)
-	{
-		soc_frmVol = 100;
-	}
-	else if (g_BatteryParameter.CellVoltMin <= Soc_Volt_1C_Table[20].cell_volt)
-	{
-		soc_frmVol = 0;
-	}
-	else
-	{
-		// SOC 在 0~100 之间
-		for (i=0; i<SOC_TABLE_NUM; i++)
-		{
-			if (g_BatteryParameter.CellVoltMin >= Soc_Volt_1C_Table[i].cell_volt)
-			{
-				soc_frmVol = Soc_Volt_1C_Table[i].soc + (g_BatteryParameter.CellVoltMin 
-				                    - Soc_Volt_1C_Table[i].cell_volt) * 5
-				                   / (Soc_Volt_1C_Table[i-1].cell_volt
-				                    - Soc_Volt_1C_Table[i].cell_volt);            
-				break;
-			}
-		}
-	}
-
-	/* 从eeprom中读取断电之前存储的Ah值，转换成SOC*/
-	g_BatteryParameter.Ah = Soc_ReadAh();
-	soc_frmEerom = (uint32_t)g_BatteryParameter.Ah * 100 / BATTERY_CAPACITY_TOTAL; 
-
-	/* 比较存储soc与电压校准soc,如果差值过大，则以电压校准soc为准 */
-	if (ABS_DIFF(soc_frmVol, soc_frmEerom) > 10)
-	{
-		g_BatteryParameter.Ah = (uint32_t)soc_frmVol * BATTERY_CAPACITY_TOTAL / 100;
-		g_BatteryParameter.Accumulator = 0;
-		g_BatteryParameter.SOC = soc_frmVol ;
-	}
-	else 
-	{
-		g_BatteryParameter.SOC = soc_frmEerom;
-		if (g_BatteryParameter.SOC)
-		{
-			g_BatteryParameter.Accumulator = Soc_ReadAcc();
-		}
-		else
-		{
-			g_BatteryParameter.Accumulator = 0;
-		} 
-	}
+	
 }
 
 

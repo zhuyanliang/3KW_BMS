@@ -14,6 +14,7 @@ extern "C" {
 
 #include <pic18.h>
 #include <xc.h>
+#include <stdlib.h>
 #include "common.h"
 #include "gpio.h"
 #include "isr.h"
@@ -24,7 +25,7 @@ extern "C" {
 #include "crc8.h"
 #include "spi.h"
 #include "ecan.h"
-#include "ltc6803_3.h"
+#include "LTC6811.h"
 #include "config.h"
 #include "detect.h"
 #include "manage.h"
@@ -38,5 +39,5 @@ extern "C" {
 }
 #endif
 
-#endif	/* NEWFILE_H */
+#endif	/* INCLUDE_H */
 

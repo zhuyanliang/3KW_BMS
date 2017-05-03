@@ -85,6 +85,8 @@
 #define DEBUG
 void System_Init(void);
 
+uint16_t cellVolt[24];
+
 //============================================================================
 // Function    ：SysClk_Init
 // Description ：Initialize the system clock Fosc.
@@ -144,7 +146,8 @@ void main(void)
         switch(taskList++)
         {
 		case 0:
-			TskAfeMgt();
+			//TskAfeMgt();
+			LTC6811_adcv();
 			break;
 		case 1:
 			TskCanMgt();
@@ -155,6 +158,8 @@ void main(void)
 			break;
 		case 4:
 			TaskLedMgt();
+			LTC6811_rdcv(0,2,&cellVolt);
+            LTC6811_clrcell();
 			taskList = 0;
 			break;
 		default:
@@ -183,6 +188,8 @@ void System_Init(void)
 
     TskBatteryPra_Init();	// 电池部分参数的初始化
     TskCan_Init();
+
+    LTC6811_initialize();
      
     g_BatteryMode 			= IDLE;
     g_ProtectDelayCnt 		= 0xffff;

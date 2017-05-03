@@ -335,34 +335,7 @@ void TskCurrentMgt(void)
 //============================================================================
 void TskCellTempMgt(void)
 {
-	static int8_t  state = 0;
-
-	switch(state++)
-	{
-	case 0:
-		g_BatteryParameter.CellTemp[0] = ADCToTempVal(g_ArrayLtc6803Unit[0].Temp1);
-		break;
-	case 1:
-		g_BatteryParameter.CellTemp[1] = ADCToTempVal(g_ArrayLtc6803Unit[0].Temp2); 
-		break;
-	case 2:
-		g_BatteryParameter.CellTemp[2] = ADCToTempVal(g_ArrayLtc6803Unit[1].Temp1);
-		break;
-	case 3:
-		g_BatteryParameter.CellTemp[3] = ADCToTempVal(g_ArrayLtc6803Unit[1].Temp2); 
-		break;
-	case 4:
-		// 检测温度值，并得到单体最大最小温度值
-		DetectMaxMinCellTemp();
-		DetectCellsOverTemp();
-		DetectCellsUnderTemp();
-		DetectCellTempDlt();
-		state = 0;
-		break;
-	default:
-		state = 0;
-		break;
-	}
+	
 }
 
 
@@ -685,55 +658,7 @@ void TskFaultStoreMgt(void)
 //============================================================================
 void TskBlncMgt(void)
 {
-	static uint8_t balFlg = 0;
-	static uint8_t n = 0;
-	static uint16_t timeStamp = 0;
-	uint8_t i, j;
-
-	if (g_BatteryMode == CHARGE)
-	{
-		if (g_SysTickMs - timeStamp > 5000)
-		{
-			g_ArrayLtc6803Unit[0].CellBal = 0;
-			g_ArrayLtc6803Unit[1].CellBal = 0;
-
-			if (g_BatteryParameter.CellVoltMin 
-				> CELL_BALANCE_OPEN_VOLT)
-			{
-				for(i=0; i<ModuleAmount; i++)
-				{
-					for(j=0;j<(CellsAmount/ModuleAmount);j++)
-					{
-						if(g_ArrayLtc6803Unit[i].CellVolt[j] - g_BatteryParameter.CellVoltMin 
-							> CELL_BALANCE_THRESHOLD)
-						{
-							g_ArrayLtc6803Unit[i].CellBal |= ((uint16_t)0x01 << j);
-						}
-					}
-				}
-			}
-
-			Ltc6803_WriteCfgRegGroup(g_ArrayLtc6803Unit);
-
-			balFlg = 1;
-			timeStamp = g_SysTickMs;
-		}
-	}
-	else if(balFlg == 1)
-	{
-		if(n++ < 3)
-		{
-			g_ArrayLtc6803Unit[0].CellBal = 0;
-			g_ArrayLtc6803Unit[1].CellBal = 0;
-
-			Ltc6803_WriteCfgRegGroup(g_ArrayLtc6803Unit);
-		}
-		else
-		{
-			balFlg = 0;
-			n = 0;
-		}
-	}
+	
 }
 
 
@@ -747,82 +672,7 @@ void TskBlncMgt(void)
 //============================================================================
 void TskAfeMgt(void)
 {
-	static uint32_t timeStamp;
-	static uint8_t ComErrCnt = 5;
-	static AfeStateTypedef AfeState = AFE_VOLT_CNVT;
-	uint8_t i;
-        
-	switch (AfeState)
-	{
-	case AFE_VOLT_CNVT:
-		Ltc6803_CellVoltCnvt(STCVAD_CMD, CELL_ALL);  //启动单体电压转换
-		timeStamp = g_SysTickMs;  //记录转换开始时间
-		AfeState = AFE_READ_VOLT;  //状态切换
-		break;
-
-	case AFE_READ_VOLT:
-		if (g_SysTickMs - timeStamp >= 10)  // 转换完成需要20ms
-		{
-			if (Ltc6803_ReadAllCellVolt((Ltc6803_Parameter *)g_ArrayLtc6803Unit))
-			{
-				AfeState = AFE_VOLT_DETECT;
-				g_SystemError.ltc_com = 0;
-				ComErrCnt = 5;
-			}
-			else
-			{
-				AfeState = AFE_VOLT_CNVT;
-
-				/* mcu与ltc6803 spi通信错误检测 */
-				if (ComErrCnt)
-				{
-					ComErrCnt--;
-				}
-				else 
-				{
-					g_SystemError.ltc_com = 1;
-					g_FaultRecord.ltc_com ++;
-					if (g_ProtectDelayCnt > RELAY_ACTION_DELAY_1S)
-					{
-						g_ProtectDelayCnt = RELAY_ACTION_DELAY_1S;
-					}
-				}
-			}
-		}
-		break;
-	case AFE_VOLT_DETECT:
-		DetectMaxMinAvgCellVolt();
-		DetectCellsOverVolt();
-		DetectCellsUnderVolt();
-		DetectCellsVoltImba();
-		DetectPackOv();
-		DetectPackUv();    
-		AfeState = AFE_TEMP_CNVT;//AFE_BALANCE;
-		break;
-		
-	case AFE_TEMP_CNVT:
-		Ltc6803_TempCnvt(TEMP_ALL);  //启动温度转换
-		timeStamp = g_SysTickMs;  //记录转换开始时间
-		AfeState = AFE_READ_TEMP;  //状态切换
-		break;
-
-	case AFE_READ_TEMP:
-        if(g_SysTickMs - timeStamp >= 10)
-        {
-            Ltc6803_ReadAllTemp((Ltc6803_Parameter *)g_ArrayLtc6803Unit);
-            AfeState = AFE_BALANCE;// AFE_CAL_TEMP;
-        }
-		break;
-		
-	case AFE_BALANCE:
-		TskBlncMgt();
-		AfeState = AFE_VOLT_CNVT;
-		break;
-
-	default:
-		AfeState = AFE_VOLT_CNVT;
-		break;
-   }
+	
 }
 
 //----------------------------------------------------------------------------

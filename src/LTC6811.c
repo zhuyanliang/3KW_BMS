@@ -59,8 +59,35 @@ Copyright 2013 Linear Technology Corp. (LTC)
     Library for LTC6811-1 Multicell Battery Monitor
 */
 
-#include "LTC6811.h"
-#include "spi.h"
+#include "include.h"
+
+static const unsigned int crc15Table[256] = 
+{
+	0x0000, 0xc599, 0xceab, 0x0b32, 0xd8cf, 0x1d56, 0x1664, 0xd3fd, 0xf407, 0x319e, 0x3aac,  //!<precomputed CRC15 Table
+	0xff35, 0x2cc8, 0xe951, 0xe263, 0x27fa, 0xad97, 0x680e, 0x633c, 0xa6a5, 0x7558, 0xb0c1, 
+	0xbbf3, 0x7e6a, 0x5990, 0x9c09, 0x973b, 0x52a2, 0x815f, 0x44c6, 0x4ff4, 0x8a6d, 0x5b2e,
+	0x9eb7, 0x9585, 0x501c, 0x83e1, 0x4678, 0x4d4a, 0x88d3, 0xaf29, 0x6ab0, 0x6182, 0xa41b,
+	0x77e6, 0xb27f, 0xb94d, 0x7cd4, 0xf6b9, 0x3320, 0x3812, 0xfd8b, 0x2e76, 0xebef, 0xe0dd, 
+	0x2544, 0x02be, 0xc727, 0xcc15, 0x098c, 0xda71, 0x1fe8, 0x14da, 0xd143, 0xf3c5, 0x365c, 
+	0x3d6e, 0xf8f7, 0x2b0a, 0xee93, 0xe5a1, 0x2038, 0x07c2, 0xc25b, 0xc969, 0x0cf0, 0xdf0d, 
+	0x1a94, 0x11a6, 0xd43f, 0x5e52, 0x9bcb, 0x90f9, 0x5560, 0x869d, 0x4304, 0x4836, 0x8daf,
+	0xaa55, 0x6fcc, 0x64fe, 0xa167, 0x729a, 0xb703, 0xbc31, 0x79a8, 0xa8eb, 0x6d72, 0x6640,
+	0xa3d9, 0x7024, 0xb5bd, 0xbe8f, 0x7b16, 0x5cec, 0x9975, 0x9247, 0x57de, 0x8423, 0x41ba,
+	0x4a88, 0x8f11, 0x057c, 0xc0e5, 0xcbd7, 0x0e4e, 0xddb3, 0x182a, 0x1318, 0xd681, 0xf17b, 
+	0x34e2, 0x3fd0, 0xfa49, 0x29b4, 0xec2d, 0xe71f, 0x2286, 0xa213, 0x678a, 0x6cb8, 0xa921, 
+	0x7adc, 0xbf45, 0xb477, 0x71ee, 0x5614, 0x938d, 0x98bf, 0x5d26, 0x8edb, 0x4b42, 0x4070, 
+	0x85e9, 0x0f84, 0xca1d, 0xc12f, 0x04b6, 0xd74b, 0x12d2, 0x19e0, 0xdc79, 0xfb83, 0x3e1a, 
+	0x3528, 0xf0b1, 0x234c, 0xe6d5, 0xede7, 0x287e, 0xf93d, 0x3ca4, 0x3796, 0xf20f, 0x21f2, 
+	0xe46b, 0xef59, 0x2ac0, 0x0d3a, 0xc8a3, 0xc391, 0x0608, 0xd5f5, 0x106c, 0x1b5e, 0xdec7, 
+	0x54aa, 0x9133, 0x9a01, 0x5f98, 0x8c65, 0x49fc, 0x42ce, 0x8757, 0xa0ad, 0x6534, 0x6e06, 
+	0xab9f, 0x7862, 0xbdfb, 0xb6c9, 0x7350, 0x51d6, 0x944f, 0x9f7d, 0x5ae4, 0x8919, 0x4c80, 
+	0x47b2, 0x822b, 0xa5d1, 0x6048, 0x6b7a, 0xaee3, 0x7d1e, 0xb887, 0xb3b5, 0x762c, 0xfc41, 
+	0x39d8, 0x32ea, 0xf773, 0x248e, 0xe117, 0xea25, 0x2fbc, 0x0846, 0xcddf, 0xc6ed, 0x0374, 
+	0xd089, 0x1510, 0x1e22, 0xdbbb, 0x0af8, 0xcf61, 0xc453, 0x01ca, 0xd237, 0x17ae, 0x1c9c, 
+	0xd905, 0xfeff, 0x3b66, 0x3054, 0xf5cd, 0x2630, 0xe3a9, 0xe89b, 0x2d02, 0xa76f, 0x62f6, 
+	0x69c4, 0xac5d, 0x7fa0, 0xba39, 0xb10b, 0x7492, 0x5368, 0x96f1, 0x9dc3, 0x585a, 0x8ba7, 
+	0x4e3e, 0x450c, 0x8095
+}; 
 
 /*!
   6804 conversion command variables.  
@@ -70,13 +97,13 @@ uint8_t ADAX[2]; //!< GPIO conversion command.
 
 
 /*!
-  \brief This function will initialize all 6804 variables and the SPI port.
+  \brief This function will initialize all 6811 variables and the SPI port.
 
   This function will initialize the Linduino to communicate with the LTC6811 with a 1MHz SPI clock.
   The Function also intializes the ADCV and ADAX commands to convert all cell and GPIO voltages in
   the Normal ADC mode.
 */
-void LTC6811_initialize()
+void LTC6811_initialize(void)
 {
 	TRISCbits.TRISC2 = 0b0;  // LTC6811µÄCS¹Ü½Å
 	
@@ -94,8 +121,8 @@ void LTC6811_initialize()
 Command Code:
 -------------
 
-|command	|  15   |  14   |  13   |  12   |  11   |  10   |   9   |   8   |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   | 
-|-----------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
+|command	    |  15   |  14   |  13   |  12   |  11   |  10   |   9   |   8   |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   | 
+|-----------  |-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
 |ADCV:	    |   0   |   0   |   0   |   0   |   0   |   0   |   1   | MD[1] | MD[2] |   1   |   1   |  DCP  |   0   | CH[2] | CH[1] | CH[0] | 
 |ADAX:	    |   0   |   0   |   0   |   0   |   0   |   1   |   0   | MD[1] | MD[2] |   1   |   1   |  DCP  |   0   | CHG[2]| CHG[1]| CHG[0]| 
  ******************************************************************************************************************/
@@ -134,10 +161,10 @@ Command Code:
 -------------
   
 |CMD[0:1]	|  15   |  14   |  13   |  12   |  11   |  10   |   9   |   8   |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   | 
-|-----------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
-|ADCV:	    |   0   |   0   |   0   |   0   |   0   |   0   |   1   | MD[1] | MD[2] |   1   |   1   |  DCP  |   0   | CH[2] | CH[1] | CH[0] |  
+|---------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
+|ADCV:	|   0   |   0   |   0   |   0   |   0   |   0   |   1   | MD[1] | MD[2] |   1   |   1   |  DCP  |   0   | CH[2] | CH[1] | CH[0] |  
 ***********************************************************************************************/
-void LTC6811_adcv()
+void LTC6811_adcv(void)
 {
 
 	uint8_t cmd[4];
@@ -253,13 +280,14 @@ uint8_t LTC6811_rdcv(uint8_t reg, // Controls which cell voltage register is rea
 	const uint8_t BYT_IN_REG = 6;
 	const uint8_t CELL_IN_REG = 3;
 
-	uint8_t *cell_data;
+	//uint8_t *cell_data;
+	uint8_t cell_data[16];
 	uint8_t pec_error = 0;
 	uint16_t parsed_cell;
 	uint16_t received_pec;
 	uint16_t data_pec;
 	uint8_t data_counter=0; //data counter
-	cell_data = (uint8_t *) malloc((NUM_RX_BYT*total_ic)*sizeof(uint8_t));
+	//cell_data = (uint8_t *) malloc((NUM_RX_BYT*total_ic)*sizeof(uint8_t));
 	//1.a
 	if (reg == 0)
 	{
@@ -345,8 +373,8 @@ uint8_t LTC6811_rdcv(uint8_t reg, // Controls which cell voltage register is rea
 		}
   	}
 
-	free(cell_data);
-	return(pec_error);
+	//free(cell_data);
+	return (pec_error);
 }
 /*
 	LTC6811_rdcv Sequence
@@ -484,13 +512,14 @@ int8_t LTC6811_rdaux(uint8_t reg, //Determines which GPIO voltage register is re
 	const uint8_t BYT_IN_REG = 6;
 	const uint8_t GPIO_IN_REG = 3;
 
-	uint8_t *data;
+	//uint8_t *data;
+	uint8_t data[8];
 	uint8_t data_counter = 0; 
 	int8_t pec_error = 0;
 	uint16_t parsed_aux;
 	uint16_t received_pec;
 	uint16_t data_pec;
-	data = (uint8_t *) malloc((NUM_RX_BYT*total_ic)*sizeof(uint8_t));
+	//data = (uint8_t *) malloc((NUM_RX_BYT*total_ic)*sizeof(uint8_t));
 	//1.a
 	if (reg == 0)
 	{
@@ -572,7 +601,7 @@ int8_t LTC6811_rdaux(uint8_t reg, //Determines which GPIO voltage register is re
 			data_counter=data_counter+2;												
 		}
 	}
-	free(data);
+	//free(data);
 	return (pec_error);
 }
 /*
@@ -766,11 +795,11 @@ void LTC6811_clraux()
  
 Command Code:
 -------------
-|               |							CMD[0]                              |                            CMD[1]                             |
-|---------------|---------------------------------------------------------------|---------------------------------------------------------------|
+|             |							CMD[0]                      |                            CMD[1]                             |
+|-------------|---------------------------------------------------------------|---------------------------------------------------------------|
 |CMD[0:1]	    |  15   |  14   |  13   |  12   |  11   |  10   |   9   |   8   |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   | 
-|---------------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
-|WRCFG:	        |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   1   |
+|-------------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
+|WRCFG:	    |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   1   |
 ********************************************************/
 void LTC6811_wrcfg(uint8_t total_ic, //The number of ICs being written to
 				   uint8_t config[][6] //A two dimensional array of the configuration data that will be written
@@ -954,7 +983,7 @@ void spi_write_array(uint8_t len, // Option: Number of bytes to be written on th
 {
 	for(uint8_t i = 0; i < len; i++)
 	{
-		spi_write((int8_t)data[i]);
+		SPI_SendByte((int8_t)data[i]);
 	}
 }
 
@@ -975,12 +1004,12 @@ void spi_write_read(uint8_t tx_Data[],// array of data to be written on SPI port
 {
 	for(uint8_t i = 0; i < tx_len; i++)
 	{
-		spi_write(tx_Data[i]);
+		SPI_SendByte(tx_Data[i]);
 	}
 
 	for(uint8_t i = 0; i < rx_len; i++)
 	{
-		rx_data[i] = (uint8_t)spi_read(0xFF);
+		rx_data[i] = (uint8_t)SPI_ReceiveByte();
 	}
 
 }
