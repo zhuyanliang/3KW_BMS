@@ -49,7 +49,40 @@ Copyright 2013 Linear Technology Corp. (LTC)
 
 #define LTC6811_CS LATCbits.LATC2 
 
-#define Set_Ltc6811(x) {Nop();Nop();Nop();Nop();LTC6811_CS = x; Nop();Nop();Nop();Nop();}
+#define Set_Ltc6811(x) LTC6811_CS = x
+
+/*
+	Pre computed crc15 table used for the LTC6811 PEC calculation
+	
+	The code used to generate the crc15 table is:
+	
+void generate_crc15_table()
+{
+  int remainder;
+	for(int i = 0; i<256;i++)
+	{	
+		remainder =  i<< 7;
+		for (int bit = 8; bit > 0; --bit)
+  		  {
+     		
+     			 if ((remainder & 0x4000) > 0)//equivalent to remainder & 2^14 simply check for MSB
+    			  {
+        				remainder = ((remainder << 1)) ;
+        				remainder = (remainder ^ 0x4599);
+     			 }
+     			 else
+      			{
+       				 remainder = ((remainder << 1));
+      			}
+   		 }
+	
+		crc15Table[i] = remainder&0xFFFF;
+	
+	}
+}
+*/
+
+
 
  /*! 
  
@@ -62,10 +95,6 @@ Copyright 2013 Linear Technology Corp. (LTC)
 #define MD_FAST 	1
 #define MD_NORMAL 	2
 #define MD_FILTERED 3
-
-
-#define  WRCFG_CMD             ((uint8_t)0x01)               // Write config registers
-#define  RDCFG_CMD             ((uint8_t)0x02)               // Read config registers
 
 
  /*! 
@@ -124,36 +153,33 @@ Copyright 2013 Linear Technology Corp. (LTC)
 #define DCP_DISABLED	0
 #define DCP_ENABLED 	1
 
-typedef struct 
-{
-	int16_t  CellVolt[12]; 
-	uint16_t Temp1;
-	uint16_t Temp2;
-	uint16_t Temp3;
-	uint16_t Temp4;
-}Ltc6811_Parameter;
-
-typedef struct
-{
-	uint8_t cfgr[6];
-	uint8_t cvregA[6];
-	uint8_t cvregB[6];
-	uint8_t cvregC[6];
-	uint8_t cvregD[6];
-	uint8_t axregA[6];
-	uint8_t axregB[6];
-	uint8_t stregA[6];
-	uint8_t stregB[6];
-	uint8_t commreg[6];
-	uint8_t contreg[6];
-	uint8_t pwmreg[6];
-}LTC6811_RegStr;
-
-extern Ltc6811_Parameter 	g_ArrayLtc6811Unit[ModuleAmount];
-extern LTC6811_RegStr		g_Ltc6811Reg;
-
 void LTC6811_initialize(void);
 
-void LTC6811_Adcv(void); 
+void set_adc(uint8_t MD, uint8_t DCP, uint8_t CH, uint8_t CHG);
+
+void LTC6811_adcv(void); 
+
+void LTC6811_adax(void);
+
+uint8_t LTC6811_rdcv(uint8_t reg, uint8_t total_ic, uint16_t cell_codes[][12]);
+
+void LTC6811_rdcv_reg(uint8_t reg, uint8_t nIC, uint8_t *data);
+
+int8_t LTC6811_rdaux(uint8_t reg, uint8_t nIC, uint16_t aux_codes[][6]);
+
+void LTC6811_rdaux_reg(uint8_t reg, uint8_t nIC,uint8_t *data);
+
+void LTC6811_clrcell(void);
+
+void LTC6811_clraux(void);
+
+void LTC6811_wrcfg(uint8_t nIC,uint8_t config[][6]);
+
+int8_t LTC6811_rdcfg(uint8_t nIC, uint8_t r_config[][8]);
+
+uint16_t pec15_calc(uint8_t len, uint8_t *data);
+
+void spi_write_array(uint8_t len, uint8_t data[]);
+void spi_write_read(uint8_t tx_Data[],uint8_t tx_len, uint8_t *rx_data,uint8_t rx_len);
 
 #endif

@@ -85,7 +85,7 @@
 #define DEBUG
 void System_Init(void);
 
-uint16_t cellVolt[24];
+uint16_t cellVolt[2][12];
 
 //============================================================================
 // Function    ：SysClk_Init
@@ -158,8 +158,7 @@ void main(void)
 			break;
 		case 4:
 			TaskLedMgt();
-			LTC6811_rdcv(0,2,&cellVolt);
-            LTC6811_clrcell();
+			LTC6811_rdcv(0,2,cellVolt);
 			taskList = 0;
 			break;
 		default:
@@ -175,30 +174,21 @@ void main(void)
 void System_Init(void)
 {
 	ClrWdt();
-    SysClk_Init();  // 系统时钟初始化
-    
-    ISR_Init();     // 中断处理程序初始化
-    SPI_Init();      // SPI初始化
-    Timer_Init();
-    Gpio_Init();
+	SysClk_Init();  // 系统时钟初始化
 
-    ECAN_Init();
-   
+	ISR_Init();     // 中断处理程序初始化
+	Timer_Init();
+
+	SPI_Init();      // SPI初始化
+	Gpio_Init();
+	ECAN_Init();
+
 	ClrWdt();
 
-    TskBatteryPra_Init();	// 电池部分参数的初始化
-    TskCan_Init();
+	TskBatteryPra_Init();	// 电池部分参数的初始化
+	TskCan_Init();
+	LTC6811_initialize();
 
-    LTC6811_initialize();
-     
-    g_BatteryMode 			= IDLE;
-    g_ProtectDelayCnt 		= 0xffff;
-    g_EnterLowPoweModeFlg 	= 0;	// 进入低功耗状态
-    g_SystemWarning.all 	= 0;    // clear system warning flags
-
-#ifndef DEBUG
-	WDTCONbits.SWDTE = 0b1; 	// 开启看门狗
-#endif
-    ClrWdt();
+	ClrWdt();
 }
 
