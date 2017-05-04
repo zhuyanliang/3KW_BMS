@@ -147,10 +147,10 @@ typedef struct
 }LTC6811_RegStr;
 
 extern Ltc6811_Parameter 	g_ArrayLtc6811Unit;
-extern uint8_t				gRegg_Ltc6811CfgReg[ModuleAmount][6];
+extern LTC6811_RegStr		g_Ltc6811CfgReg[ModuleAmount];
 
 void 		LTC6811_Initialize(void);
-void 		LTC6811_WriteCfgReg(uint8_t config[ModuleAmount][6]);
+void 		LTC6811_WriteCfgReg(void);
 void 		LTC6811_Adcv(void);
 uint8_t 	LTC6811_ReadCellVolt(uint8_t reg,uint16_t cell_codes[2][12]);
 void 		LTC6811_Rdcv_Reg(uint8_t reg,uint8_t *data);

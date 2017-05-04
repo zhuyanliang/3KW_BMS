@@ -62,6 +62,7 @@ Copyright 2013 Linear Technology Corp. (LTC)
 #include "include.h"
 
 Ltc6811_Parameter 	g_ArrayLtc6811Unit;
+LTC6811_RegStr		g_Ltc6811CfgReg[ModuleAmount];
 
 
 static const unsigned int crc15Table[256] = 
@@ -190,10 +191,13 @@ void LTC6811_Initialize(void)
 	TRISCbits.TRISC2 = 0b0;  // LTC6811µÄCS¹Ü½Å
 	Set_Adc(MD_NORMAL,DCP_ENABLED,CELL_CH_ALL,AUX_CH_ALL);
 
-	g_Ltc6811CfgReg[0][0] = 0x02;
-    g_Ltc6811CfgReg[1][0] = 0x02;
-	LTC6811_WriteCfgReg(g_Ltc6811CfgReg);
+	g_Ltc6811CfgReg[0].cfgr[0] = 0x02;
+    g_Ltc6811CfgReg[1].cfgr[0] = 0x02;
+	
+	LTC6811_WriteCfgReg();
 }
+
+
 
 /*****************************************************//**
  brief Write the LTC6811 configuration register 
@@ -218,7 +222,7 @@ Command Code:
 |---------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
 |WRCFG:	|   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   1   |
 ********************************************************/
-void LTC6811_WriteCfgReg(uint8_t config[ModuleAmount][6])
+void LTC6811_WriteCfgReg(void)
 {
 	uint8_t 	cmd[4+8*ModuleAmount];
 	uint16_t 	pec;
@@ -234,10 +238,10 @@ void LTC6811_WriteCfgReg(uint8_t config[ModuleAmount][6])
 	{	
 		for (uint8_t j = 0; j < 6; j++) 	
 		{																				
-			cmd[cmd_index] = config[i][j]; 							
+			cmd[cmd_index] = g_Ltc6811CfgReg[i].cfgr[j]; 							
 			cmd_index ++;                
 		}
-		pec = (uint16_t)Pec15_Calc(6, config[i]);		
+		pec = (uint16_t)Pec15_Calc(6, g_Ltc6811CfgReg[i].cfgr);		
 		cmd[cmd_index] = (uint8_t)(pec >> 8);
 		cmd[cmd_index + 1] = (uint8_t)pec;
 		cmd_index = cmd_index + 2;
