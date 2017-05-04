@@ -85,8 +85,6 @@
 #define DEBUG
 void System_Init(void);
 
-uint16_t cellVolt[2][12];
-
 //============================================================================
 // Function    ：SysClk_Init
 // Description ：Initialize the system clock Fosc.
@@ -125,7 +123,8 @@ void TRIG_TEST(void)
 	LATDbits.LATD0 ^= 0b1;   
 }
 
-
+uint8_t adcvolt[2][12];
+uint8_t adcaux[2][5];
 /*
  * 
  */
@@ -136,29 +135,33 @@ void main(void)
     System_Init();    
 	
 	EnableWatchDog();
-    
+	TskLcdShow();
+
     for(;;)
     {
 		// 查询优先级较高任务
-
 		TskCanRecMsgToBuf();
 		
         switch(taskList++)
         {
 		case 0:
-			//TskAfeMgt();
-			LTC6811_adcv();
+			LTC6811_Adcv();
 			break;
-		case 1:
-			TskCanMgt();
+		case 1:		
+            LTC6811_ReadCellVolt(0,adcvolt);
 			break;
 		case 2:
+			TskCanMgt();
+            TskLcdShow();
+            
 			break;
 		case 3:
+            LTC6811_Adax();
 			break;
 		case 4:
+            LTC6811_ReadAux(0,adcaux);
 			TaskLedMgt();
-			LTC6811_rdcv(0,2,cellVolt);
+			LCD_DisplayDriver();
 			taskList = 0;
 			break;
 		default:
@@ -181,13 +184,14 @@ void System_Init(void)
 
 	SPI_Init();      // SPI初始化
 	Gpio_Init();
+	Lcd_Init();
 	ECAN_Init();
 
 	ClrWdt();
 
 	TskBatteryPra_Init();	// 电池部分参数的初始化
 	TskCan_Init();
-	LTC6811_initialize();
+	LTC6811_Initialize();
 
 	ClrWdt();
 }

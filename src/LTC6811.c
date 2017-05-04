@@ -89,13 +89,12 @@ static const unsigned int crc15Table[256] =
 	0x4e3e, 0x450c, 0x8095
 }; 
 
-Ltc6811_Parameter 	g_ArrayLtc6811Unit[ModuleAmount] = {0};
-LTC6811_RegStr		g_Ltc6811Reg[ModuleAmount][6] = {0};
+uint8_t				g_Ltc6811CfgReg[ModuleAmount][6];
 /*!
   6811 conversion command variables.  
 */
-uint8_t ADCV[2]; //!< Cell Voltage conversion command.
-uint8_t ADAX[2]; //!< GPIO conversion command.
+uint8_t g_ADCV[2]; //!< Cell Voltage conversion command.
+uint8_t g_ADAX[2]; //!< GPIO conversion command.
 
 
 /*!*******************************************************************************************************************
@@ -105,32 +104,56 @@ uint8_t ADAX[2]; //!< GPIO conversion command.
 @param[in] uint8_t DCP Controls if Discharge is permitted during cell conversions
 @param[in] uint8_t CH Determines which cells are measured during an ADC conversion command
 @param[in] uint8_t CHG Determines which GPIO channels are measured during Auxiliary conversion command
- 
 Command Code:
 -------------
-
 |command	    |  15   |  14   |  13   |  12   |  11   |  10   |   9   |   8   |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   | 
 |-----------  |-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
-|ADCV:	    |   0   |   0   |   0   |   0   |   0   |   0   |   1   | MD[1] | MD[2] |   1   |   1   |  DCP  |   0   | CH[2] | CH[1] | CH[0] | 
-|ADAX:	    |   0   |   0   |   0   |   0   |   0   |   1   |   0   | MD[1] | MD[2] |   1   |   1   |  DCP  |   0   | CHG[2]| CHG[1]| CHG[0]| 
+|g_ADCV:	    |   0   |   0   |   0   |   0   |   0   |   0   |   1   | MD[1] | MD[2] |   1   |   1   |  DCP  |   0   | CH[2] | CH[1] | CH[0] | 
+|g_ADAX:	    |   0   |   0   |   0   |   0   |   0   |   1   |   0   | MD[1] | MD[2] |   1   |   1   |  DCP  |   0   | CHG[2]| CHG[1]| CHG[0]| 
  ******************************************************************************************************************/
-static void Set_Adc(uint8_t MD, //ADC Mode
-				 uint8_t DCP, //Discharge Permit
-				 uint8_t CH, //Cell Channels to be measured
-				 uint8_t CHG //GPIO Channels to be measured
-			 )
+static void Set_Adc(uint8_t MD,uint8_t DCP, uint8_t CH, uint8_t CHG)
 {
 	uint8_t md_bits;
 
 	md_bits = (MD & 0x02) >> 1;
-	ADCV[0] = md_bits + 0x02;
+	g_ADCV[0] = md_bits + 0x02;
 	md_bits = (MD & 0x01) << 7;
-	ADCV[1] =  md_bits + 0x60 + (DCP<<4) + CH;
+	g_ADCV[1] =  md_bits + 0x60 + (DCP<<4) + CH;
 
 	md_bits = (MD & 0x02) >> 1;
-	ADAX[0] = md_bits + 0x04;
+	g_ADAX[0] = md_bits + 0x04;
 	md_bits = (MD & 0x01) << 7;
-	ADAX[1] = md_bits + 0x60 + CHG;
+	g_ADAX[1] = md_bits + 0x60 + CHG;
+}
+
+static void SPI_Write_Array(uint8_t len, uint8_t data[])
+{
+	for(uint8_t i = 0; i < len; i++)
+	{
+		SPI_SendByte((int8_t)data[i]);
+	}
+}
+
+/*!
+ \brief Writes and read a set number of bytes using the SPI port.
+
+@param[in] uint8_t tx_data[] array of data to be written on the SPI port
+@param[in] uint8_t tx_len length of the tx_data array
+@param[out] uint8_t rx_data array that read data will be written too. 
+@param[in] uint8_t rx_len number of bytes to be read from the SPI port.
+*/
+static void SPI_Write_Read(uint8_t tx_Data[],uint8_t tx_len,uint8_t *rx_data,uint8_t rx_len)
+{
+	for(uint8_t i = 0; i < tx_len; i++)
+	{
+		SPI_SendByte(tx_Data[i]);
+	}
+
+	for(uint8_t i = 0; i < rx_len; i++)
+	{
+		rx_data[i] = (uint8_t)SPI_ReceiveByte();
+	}
+
 }
 
 /*!**********************************************************
@@ -149,58 +172,51 @@ uint16_t Pec15_Calc(uint8_t len, uint8_t *data)
 		addr = ((remainder>>7)^data[i])&0xff;//calculate PEC table address 
 		remainder = (remainder<<8)^crc15Table[addr];
 	}
-	//The CRC15 has a 0 in the LSB so the remainder must be multiplied by 2
-	return (remainder*2);
+
+	return (remainder<<1);
 }
 
 /*!
   \brief This function will initialize all 6811 variables and the SPI port.
 
   This function will initialize the Linduino to communicate with the LTC6811 with a 1MHz SPI clock.
-  The Function also intializes the ADCV and ADAX commands to convert all cell and GPIO voltages in
+  The Function also intializes the g_ADCV and g_ADAX commands to convert all cell and GPIO voltages in
   the Normal ADC mode.
 */
-void LTC6811_initialize(void)
+void LTC6811_Initialize(void)
 {
 	TRISCbits.TRISC2 = 0b0;  // LTC6811µÄCS¹Ü½Å
-	Set_Adc(MD_NORMAL,DCP_DISABLED,CELL_CH_ALL,AUX_CH_ALL);
+	Set_Adc(MD_NORMAL,DCP_ENABLED,CELL_CH_ALL,AUX_CH_ALL);
 
-	for(uint8_t i=0;i<ModuleAmount;i++)
-	{
-		g_Ltc6811Reg.cfgr[i][0] = 0x02;
-	}
-	LTC6811_WriteCfgReg(g_Ltc6811Reg);
+	g_Ltc6811CfgReg[0][0] = 0x02;
+    g_Ltc6811CfgReg[1][0] = 0x02;
+	LTC6811_WriteCfgReg(g_Ltc6811CfgReg);
 }
 
 /*****************************************************//**
- \brief Write the LTC6811 configuration register 
+ brief Write the LTC6811 configuration register 
  
  This command will write the configuration registers of the LTC6811-1s 
  connected in a daisy chain stack. The configuration is written in descending 
  order so the last device's configuration is written first.
- 
  @param[in] uint8_t total_ic; The number of ICs being written to. 
- 
  @param[in] uint8_t config[][6] is a two dimensional array of the configuration data that will be written, the array should contain the 6 bytes for each
  IC in the daisy chain. The lowest IC in the daisy chain should be the first 6 byte block in the array. The array should
  have the following format:
  |  config[0][0]| config[0][1] |  config[0][2]|  config[0][3]|  config[0][4]|  config[0][5]| config[1][0] |  config[1][1]|  config[1][2]|  .....    |
  |--------------|--------------|--------------|--------------|--------------|--------------|--------------|--------------|--------------|-----------|
  |IC1 CFGR0     |IC1 CFGR1     |IC1 CFGR2     |IC1 CFGR3     |IC1 CFGR4     |IC1 CFGR5     |IC2 CFGR0     |IC2 CFGR1     | IC2 CFGR2    |  .....    |
- 
  The function will calculate the needed PEC codes for the write data
  and then transmit data to the ICs on a daisy chain.
- 
- 
 Command Code:
 -------------
-|           |							CMD[0]                              |                            CMD[1]                             |
-|-----------|---------------------------------------------------------------|---------------------------------------------------------------|
+|         |							CMD[0]                       |                            CMD[1]                             |
+|---------|---------------------------------------------------------------|---------------------------------------------------------------|
 |CMD[0:1]	|  15   |  14   |  13   |  12   |  11   |  10   |   9   |   8   |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   | 
-|-----------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
-|WRCFG:	    |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   1   |
+|---------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
+|WRCFG:	|   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   1   |
 ********************************************************/
-void LTC6811_WriteCfgReg(uint8_t config[][6])
+void LTC6811_WriteCfgReg(uint8_t config[ModuleAmount][6])
 {
 	uint8_t 	cmd[4+8*ModuleAmount];
 	uint16_t 	pec;
@@ -212,24 +228,432 @@ void LTC6811_WriteCfgReg(uint8_t config[][6])
 	cmd[3] = 0x6e;
 	cmd_index = 4;
 		
-	for (uint8_t i = ModuleAmount; i > 0; i--)				
+	for (uint8_t i = 0; i < ModuleAmount; i++)				
 	{	
-		// executes for each of the 6 bytes in the CFGR register
-		// current_byte is the byte counter
-		for (uint8_t current_byte = 0; current_byte < 6; current_byte++) 	
+		for (uint8_t j = 0; j < 6; j++) 	
 		{																				
-			cmd[cmd_index] = config[i-1][current_byte]; 							
-			cmd_index = cmd_index + 1;                
+			cmd[cmd_index] = config[i][j]; 							
+			cmd_index ++;                
 		}
-		pec = (uint16_t)Pec15_Calc(6, config[i-1]);		
+		pec = (uint16_t)Pec15_Calc(6, config[i]);		
 		cmd[cmd_index] = (uint8_t)(pec >> 8);
-		cmd[cmd_index + 1] = (uint8_t)cfg_pec;
+		cmd[cmd_index + 1] = (uint8_t)pec;
 		cmd_index = cmd_index + 2;
 	}
 
 	Set_Ltc6811(0b0);
-	spi_write_array(4+8*ModuleAmount, cmd);
+	SPI_Write_Array(4+8*ModuleAmount,cmd);
 	Set_Ltc6811(0b1);
 }
+
+/*!*********************************************************************************************
+  \brief Starts cell voltage conversion
+  Starts ADC conversions of the LTC6811 Cpin inputs.
+  The type of ADC conversion executed can be changed by setting the associated global variables:
+ |Variable|Function                                      | 
+ |--------|----------------------------------------------|
+ | MD     | Determines the filter corner of the ADC      |
+ | CH     | Determines which cell channels are converted |
+ | DCP    | Determines if Discharge is Permitted	     |
+Command Code:
+-------------
+|CMD[0:1]  |  15   |  14   |  13   |  12   |  11   |  10   |   9   |   8   |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   | 
+|--------- |-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
+|g_ADCV:	 |   0   |   0   |   0   |   0   |   0   |   0   |   1   | MD[1] | MD[2] |   1   |   1   |  DCP  |   0   | CH[2] | CH[1] | CH[0] |  
+***********************************************************************************************/
+void LTC6811_Adcv(void)
+{
+
+	uint8_t cmd[4];
+	uint16_t cmd_pec;
+
+	cmd[0] = g_ADCV[0];
+	cmd[1] = g_ADCV[1];
+
+	cmd_pec = Pec15_Calc(2, g_ADCV);
+	cmd[2] = (uint8_t)(cmd_pec >> 8);
+	cmd[3] = (uint8_t)(cmd_pec);
+
+	Set_Ltc6811(0b0);
+	SPI_Write_Array(4,cmd);
+	Set_Ltc6811(0b1);
+}
+
+
+
+/***********************************************
+ brief Reads and parses the LTC6811 cell voltage registers.
+ The function is used to read the cell codes of the LTC6811.
+ This function will send the requested read commands parse the data
+ and store the cell voltages in cell_codes variable. 
+ @param[in] uint8_t reg; This controls which cell voltage register is read back. 
+          0: Read back all Cell registers 	  
+          1: Read back cell group A 	  
+          2: Read back cell group B   
+          3: Read back cell group C   
+          4: Read back cell group D 
+ @param[in] uint8_t total_ic; This is the number of ICs in the daisy chain(-1 only) 
+ @param[out] uint16_t cell_codes[]; An array of the parsed cell codes from lowest to highest. The cell codes will
+  be stored in the cell_codes[] array in the following format:
+  |  cell_codes[0][0]| cell_codes[0][1] |  cell_codes[0][2]|    .....     |  cell_codes[0][11]|  cell_codes[1][0] | cell_codes[1][1]|  .....   |
+  |------------------|------------------|------------------|--------------|-------------------|-------------------|-----------------|----------|
+  |IC1 Cell 1        |IC1 Cell 2        |IC1 Cell 3        |    .....     |  IC1 Cell 12      |IC2 Cell 1         |IC2 Cell 2       | .....    |
+  @return int8_t, PEC Status.
+ 
+		0: No PEC error detected
+  
+		-1: PEC error detected, retry read
+ 
+ *************************************************/
+uint8_t LTC6811_ReadCellVolt(uint8_t reg,uint16_t cell_codes[2][12])
+{
+	uint8_t 	cell_data[16];
+	uint8_t 	pec_error = 0;
+	uint16_t 	parsed_cell;
+	uint16_t 	received_pec;
+	uint16_t 	data_pec;
+	uint8_t 	data_counter = 0; //data counter
 	
+	if (reg == 0)
+	{
+		for(uint8_t cell_reg = 1; cell_reg<5; cell_reg++)         			 			
+		{
+			data_counter = 0;
+			LTC6811_Rdcv_Reg(cell_reg,cell_data);								
+
+			for (uint8_t current_ic = 0 ; current_ic < ModuleAmount; current_ic++) 			
+			{																 	  			
+				for(uint8_t current_cell = 0; current_cell<3; current_cell++)	 	
+				{														   		  			
+					parsed_cell = cell_data[data_counter] + (cell_data[data_counter + 1] << 8);												 
+					cell_codes[current_ic][current_cell  + ((cell_reg - 1) * 3)] = parsed_cell;
+					data_counter = data_counter + 2;											 																
+				}
+
+		        received_pec = (cell_data[data_counter] << 8) + cell_data[data_counter+1]; 															   
+		        data_pec = Pec15_Calc(6, &cell_data[current_ic * LTC6811_REG_LEN]);
+		        if(received_pec != data_pec)
+		        {
+		          	pec_error = -1;																		
+		        }
+				data_counter=data_counter+2;															
+			}
+		}
+	}
+	else
+	{
+	    LTC6811_Rdcv_Reg(reg,cell_data);
+
+	    for (uint8_t current_ic = 0 ; current_ic < ModuleAmount; current_ic++) 				
+	    {
+			for(uint8_t current_cell = 0; current_cell < 3; current_cell++)   
+	        {														   		  			
+				parsed_cell = cell_data[data_counter] + (cell_data[data_counter+1]<<8); 											
+				cell_codes[current_ic][current_cell + ((reg - 1) * 3)] = 0x0000FFFF & parsed_cell;
+				data_counter= data_counter + 2;														
+			}
+
+		    received_pec = (cell_data[data_counter] << 8 )+ cell_data[data_counter + 1]; 					     
+	        data_pec = Pec15_Calc(6, &cell_data[current_ic * LTC6811_REG_LEN]);
+	        
+			if(received_pec != data_pec)
+			{
+				pec_error = -1;															
+			}
+			data_counter= data_counter + 2; 																													
+		}
+  	}
+    
+	return (pec_error);
+}
+
+
+/***********************************************//**
+ brief Read the raw data from the LTC6811 cell voltage register
+ 
+ The function reads a single cell voltage register and stores the read data
+ in the *data point as a byte array. This function is rarely used outside of 
+ the LTC6811_rdcv() command. 
+ @param[in] uint8_t reg; This controls which cell voltage register is read back.    
+          1: Read back cell group A 
+          2: Read back cell group B  
+          3: Read back cell group C 
+          4: Read back cell group D   		  		  
+ @param[in] uint8_t total_ic; This is the number of ICs in the daisy chain(-1 only)
+ @param[out] uint8_t *data; An array of the unparsed cell codes 
+Command Code:
+------------
+|CMD[0:1]	|  15   |  14   |  13   |  12   |  11   |  10   |   9   |   8   |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   | 
+|---------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
+|RDCVA:	|   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   1   |   0   |   0   |
+|RDCVB:	|   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   1   |   1   |   0   | 
+|RDCVC:	|   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   1   |   0   |   0   |   0   | 
+|RDCVD:	|   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   1   |   0   |   1   |   0   |  
+
+ *************************************************/
+void LTC6811_Rdcv_Reg(uint8_t reg,uint8_t *data)
+{
+	//number of bytes in each ICs register + 2 bytes for the PEC
+	uint8_t cmd[4];
+	uint16_t pec;
+
+	if (1 == reg)     //1: RDCVA
+	{
+		cmd[1] = 0x04;
+		cmd[0] = 0x00;
+	}
+	else if(2 == reg) //2: RDCVB
+	{
+		cmd[1] = 0x06;
+		cmd[0] = 0x00;
+	} 
+	else if(3 == reg) //3: RDCVC
+	{
+		cmd[1] = 0x08;
+		cmd[0] = 0x00;
+	} 
+	else if(4 == reg) //4: RDCVD
+	{
+		cmd[1] = 0x0A;
+		cmd[0] = 0x00;
+	} 
+
+	pec = Pec15_Calc(2, cmd);
+	cmd[2] = (uint8_t)(pec >> 8);
+	cmd[3] = (uint8_t)(pec); 
+  
+	Set_Ltc6811(0b0);
+	SPI_Write_Read(cmd,4,data,LTC6811_REG_LEN*ModuleAmount);
+	
+	Set_Ltc6811(0b1);
+}
+
+/*!******************************************************************************************************
+ brief Start an GPIO Conversion
+  Starts an ADC conversions of the LTC6811 GPIO inputs.
+  The type of ADC conversion executed can be changed by setting the associated global variables:
+ |Variable|Function                                      | 
+ |--------|----------------------------------------------|
+ | MD     | Determines the filter corner of the ADC      |
+ | CHG    | Determines which GPIO channels are converted |
+ 
+Command Code:
+-------------
+
+|CMD[0:1]	|  15   |  14   |  13   |  12   |  11   |  10   |   9   |   8   |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   | 
+|---------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
+|g_ADAX:	|   0   |   0   |   0   |   0   |   0   |   1   |   0   | MD[1] | MD[2] |   1   |   1   |  DCP  |   0   | CHG[2]| CHG[1]| CHG[0]| 
+*********************************************************************************************************/
+void LTC6811_Adax(void)
+{
+  uint8_t cmd[4];
+  uint16_t cmd_pec;
+ 
+  cmd[0] = g_ADAX[0];
+  cmd[1] = g_ADAX[1];
+  cmd_pec = Pec15_Calc(2, g_ADAX);
+  cmd[2] = (uint8_t)(cmd_pec >> 8);
+  cmd[3] = (uint8_t)(cmd_pec);
+ 
+  Set_Ltc6811(0b0);
+  SPI_Write_Array(4,cmd);
+  Set_Ltc6811(0b1);
+}
+
+/***********************************************************************************//**
+ \brief Reads and parses the LTC6811 auxiliary registers.
+ The function is used
+ to read the  parsed GPIO codes of the LTC6811. This function will send the requested 
+ read commands parse the data and store the gpio voltages in aux_codes variable 
+@param[in] uint8_t reg; This controls which GPIO voltage register is read back. 	  
+          0: Read back all auxiliary registers   
+          1: Read back auxiliary group A   
+          2: Read back auxiliary group B 
+@param[in] uint8_t total_ic; This is the number of ICs in the daisy chain(-1 only) 
+@param[out] uint16_t aux_codes[][6]; A two dimensional array of the gpio voltage codes. The GPIO codes will
+ be stored in the aux_codes[][6] array in the following format:
+ |  aux_codes[0][0]| aux_codes[0][1] |  aux_codes[0][2]|  aux_codes[0][3]|  aux_codes[0][4]|  aux_codes[0][5]| aux_codes[1][0] |aux_codes[1][1]|  .....    |
+ |-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|---------------|-----------|
+ |IC1 GPIO1        |IC1 GPIO2        |IC1 GPIO3        |IC1 GPIO4        |IC1 GPIO5        |IC1 Vref2        |IC2 GPIO1        |IC2 GPIO2      |  .....    |
+ 
+@return  int8_t, PEC Status
+ 
+  0: No PEC error detected
+  
+ -1: PEC error detected, retry read
+ *************************************************/
+int8_t LTC6811_ReadAux(uint8_t reg,uint16_t aux_codes[ModuleAmount][6])
+{
+	const uint8_t NUM_RX_BYT = 8;
+	const uint8_t BYT_IN_REG = 6;
+	const uint8_t GPIO_IN_REG = 3;
+
+	uint8_t 	data[8*ModuleAmount];
+	uint8_t 	data_counter = 0; 
+	int8_t 		pec_error = 0;
+	uint16_t 	parsed_aux;
+	uint16_t 	received_pec;
+	uint16_t 	data_pec;
+
+	if (reg == 0)
+	{
+		for(uint8_t reg = 1; reg<3; reg++)		 	   		 			
+		{
+			data_counter = 0;
+			LTC6811_Rdaux_Reg(reg,data);									
+			for (uint8_t current_ic = 0 ; current_ic < ModuleAmount; current_ic++) 			
+			{																 	  			
+				for(uint8_t current_gpio = 0; current_gpio< GPIO_IN_REG; current_gpio++)	
+				{														   		  			
+					parsed_aux = data[data_counter] + (data[data_counter+1]<<8);              					    
+					aux_codes[current_ic][current_gpio +((reg-1)*GPIO_IN_REG)] = parsed_aux;
+					data_counter=data_counter+2;												
+				}
+				received_pec = (data[data_counter]<<8)+ data[data_counter+1]; 											     
+				data_pec = Pec15_Calc(BYT_IN_REG, &data[current_ic*NUM_RX_BYT]);
+				if(received_pec != data_pec)
+				{
+					pec_error = -1;
+				}
+				data_counter=data_counter+2;																							
+			}
+		}
+
+	}
+	else
+	{
+		LTC6811_Rdaux_Reg(reg, data);
+		for (int current_ic = 0 ; current_ic < ModuleAmount; current_ic++) 			  		
+		{							   									          		
+			for(int current_gpio = 0; current_gpio<GPIO_IN_REG; current_gpio++)  	 	
+			{				
+				parsed_aux = (data[data_counter] + (data[data_counter+1]<<8));    		
+														
+				aux_codes[current_ic][current_gpio +((reg-1)*GPIO_IN_REG)] = parsed_aux;
+				data_counter=data_counter+2;									 		
+			}
+
+			received_pec = (data[data_counter]<<8) + data[data_counter+1]; 				 
+												     
+			data_pec = Pec15_Calc(BYT_IN_REG, &data[current_ic*NUM_RX_BYT]);
+			if(received_pec != data_pec)
+			{
+				pec_error = -1;
+			}
+			data_counter=data_counter+2;												
+		}
+	}
+
+	return (pec_error);
+}
+
+
+/***********************************************//**
+ brief Read the raw data from the LTC6811 auxiliary register
+ The function reads a single GPIO voltage register and stores thre read data
+ in the *data point as a byte array. This function is rarely used outside of 
+ the LTC6811_rdaux() command. 
+ @param[in] uint8_t reg; This controls which GPIO voltage register is read back. 	  
+          1: Read back auxiliary group A  
+          2: Read back auxiliary group B  
+@param[in] uint8_t total_ic; This is the number of ICs in the daisy chain
+@param[out] uint8_t *data; An array of the unparsed aux codes 
+Command Code:
+-------------
+
+|CMD[0:1]	    |  15   |  14   |  13   |  12   |  11   |  10   |   9   |   8   |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   | 
+|-------------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
+|RDAUXA:	    |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   1   |   1   |   0   |   0   |
+|RDAUXB:	    |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   1   |   1   |   1   |   0   | 
+
+ *************************************************/
+void LTC6811_Rdaux_Reg(uint8_t reg,uint8_t *data)
+{
+	const uint8_t REG_LEN = 8; // number of bytes in the register + 2 bytes for the PEC
+	uint8_t cmd[4];
+	uint16_t cmd_pec;
+
+	if (1 == reg)			//Read back auxiliary group A
+	{
+		cmd[1] = 0x0C;
+		cmd[0] = 0x00;
+	}
+	else if(2 == reg)		//Read back auxiliary group B 
+	{
+		cmd[1] = 0x0e;
+		cmd[0] = 0x00;
+	} 
+	else					//Read back auxiliary group A
+	{
+		cmd[1] = 0x0C;		
+		cmd[0] = 0x00;
+	}
+
+	cmd_pec = Pec15_Calc(2, cmd);
+	cmd[2] = (uint8_t)(cmd_pec >> 8);
+	cmd[3] = (uint8_t)(cmd_pec);
+	//4
+	Set_Ltc6811(0b0);
+	SPI_Write_Read(cmd,4,data,(REG_LEN*ModuleAmount));
+	Set_Ltc6811(0b1);
+}
+
+
+/********************************************************//**
+ \brief Clears the LTC6811 cell voltage registers
+ The command clears the cell voltage registers and intiallizes 
+ all values to 1. The register will read back hexadecimal 0xFF
+ after the command is sent.
+Command Code:
+------------- 
+|CMD[0:1]	    |  15   |  14   |  13   |  12   |  11   |  10   |   9   |   8   |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   | 
+|---------------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
+|CLRCELL:	    |   0   |   0   |   0   |   0   |   0   |   1   |   1   |   1   |   0   |   0   |   0   |   1   |   0   |   0   |   0   |   1   |
+************************************************************/
+void LTC6811_ClrCell(void)
+{
+	uint8_t cmd[4];
+	uint16_t cmd_pec;
+
+	cmd[0] = 0x07;
+	cmd[1] = 0x11;
+
+	cmd_pec = Pec15_Calc(2, cmd);
+	cmd[2] = (uint8_t)(cmd_pec >> 8);
+	cmd[3] = (uint8_t)(cmd_pec );
+	//4
+	Set_Ltc6811(0b0);
+	SPI_Write_Read(cmd,4,0,0);
+	Set_Ltc6811(0b1);
+}
+
+/***********************************************************//**
+ \brief Clears the LTC6811 Auxiliary registers
+ The command clears the Auxiliary registers and intiallizes 
+ all values to 1. The register will read back hexadecimal 0xFF
+ after the command is sent.
+Command Code:
+-------------
+|CMD[0:1]	    |  15   |  14   |  13   |  12   |  11   |  10   |   9   |   8   |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   | 
+|-------------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
+|CLRAUX:	    |   0   |   0   |   0   |   0   |   0   |   1   |   1   |   1   |   0   |   0   |   0   |   1   |   0   |   0   |   2   |   0   |
+***************************************************************/
+void LTC6811_ClrAux(void)
+{
+	uint8_t cmd[4];
+	uint16_t cmd_pec;
+
+	cmd[0] = 0x07;
+	cmd[1] = 0x12;
+
+	cmd_pec = Pec15_Calc(2, cmd);
+	cmd[2] = (uint8_t)(cmd_pec >> 8);
+	cmd[3] = (uint8_t)(cmd_pec);
+	//4
+	Set_Ltc6811(0b0);
+	SPI_Write_Read(cmd,4,0,0);
+	Set_Ltc6811(0b1);
+}
+
+
 

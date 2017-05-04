@@ -32,8 +32,10 @@ extern "C" {
 
 /* 定义设计中ltc6803级联的数量
    该定义根据实际工程情况修改 */
-#define  ModuleAmount          ((uint8_t)2)           // 定义设计中有2片ltc6803级联
-#define  CellsAmount           ((uint8_t)20)          // 定义整个pack中的单体电芯数量
+#define	ModuleAmount          	((uint8_t)2)           // 定义设计中有2片ltc6803级联
+#define CellsAmount           	((uint8_t)20)          // 定义整个pack中的单体电芯数量
+#define	LTC6811_REG_LEN			((uint8_t)8)
+
 
 //配置检测温度数量
 #define MAX_TEMP_SENSOR         ((uint8_t)4)
