@@ -61,6 +61,9 @@ Copyright 2013 Linear Technology Corp. (LTC)
 
 #include "include.h"
 
+Ltc6811_Parameter 	g_ArrayLtc6811Unit;
+
+
 static const unsigned int crc15Table[256] = 
 {
 	0x0000, 0xc599, 0xceab, 0x0b32, 0xd8cf, 0x1d56, 0x1664, 0xd3fd, 0xf407, 0x319e, 0x3aac,  //!<precomputed CRC15 Table
@@ -89,7 +92,6 @@ static const unsigned int crc15Table[256] =
 	0x4e3e, 0x450c, 0x8095
 }; 
 
-uint8_t				g_Ltc6811CfgReg[ModuleAmount][6];
 /*!
   6811 conversion command variables.  
 */

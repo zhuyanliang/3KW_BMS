@@ -146,7 +146,7 @@ typedef struct
 	uint8_t pwmreg[6];
 }LTC6811_RegStr;
 
-extern Ltc6811_Parameter 	g_ArrayLtc6811Unit[ModuleAmount];
+extern Ltc6811_Parameter 	g_ArrayLtc6811Unit;
 extern uint8_t				gRegg_Ltc6811CfgReg[ModuleAmount][6];
 
 void 		LTC6811_Initialize(void);

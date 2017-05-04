@@ -148,18 +148,17 @@ void main(void)
 			LTC6811_Adcv();
 			break;
 		case 1:		
-            LTC6811_ReadCellVolt(0,adcvolt);
+            LTC6811_ReadCellVolt(0,g_ArrayLtc6811Unit.cellVolt);
 			break;
 		case 2:
 			TskCanMgt();
             TskLcdShow();
-            
 			break;
 		case 3:
             LTC6811_Adax();
 			break;
 		case 4:
-            LTC6811_ReadAux(0,adcaux);
+            LTC6811_ReadAux(0,g_ArrayLtc6811Unit.temperature);
 			TaskLedMgt();
 			LCD_DisplayDriver();
 			taskList = 0;
