@@ -61,8 +61,8 @@ Copyright 2013 Linear Technology Corp. (LTC)
 
 #include "include.h"
 
-Ltc6811_Parameter 	g_ArrayLtc6811Unit;
-LTC6811_RegStr		g_Ltc6811CfgReg[ModuleAmount];
+volatile Ltc6811_Parameter 	g_ArrayLtc6811Unit;
+volatile LTC6811_RegStr		g_Ltc6811CfgReg[ModuleAmount];
 
 
 static const unsigned int crc15Table[256] = 
@@ -189,11 +189,29 @@ uint16_t Pec15_Calc(uint8_t len, uint8_t *data)
 void LTC6811_Initialize(void)
 {
 	TRISCbits.TRISC2 = 0b0;  // LTC6811的CS管脚
-	Set_Adc(MD_NORMAL,DCP_ENABLED,CELL_CH_ALL,AUX_CH_ALL);
+	
+	//Set_Adc(MD_NORMAL,DCP_ENABLED,CELL_CH_ALL,AUX_CH_ALL);
 
+	for(uint8_t i=0;i<ModuleAmount;i++)
+	{
+		for(uint8_t j=0;j<12;j++)
+		{
+			(g_ArrayLtc6811Unit.cellVolt)[i][j] = 0;
+		}
+	}
+
+	for(uint8_t i=0;i<ModuleAmount;i++)
+	{
+		for(uint8_t j=0;j<6;j++)
+		{
+			(g_ArrayLtc6811Unit.temperature)[i][j] = 0;
+		}
+	}
+	
 	g_Ltc6811CfgReg[0].cfgr[0] = 0x02;
     g_Ltc6811CfgReg[1].cfgr[0] = 0x02;
-	
+
+	DelayMs(50);//延时200ms等待ltc6811电源稳定
 	LTC6811_WriteCfgReg();
 }
 
@@ -267,14 +285,16 @@ Command Code:
 |--------- |-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
 |g_ADCV:	 |   0   |   0   |   0   |   0   |   0   |   0   |   1   | MD[1] | MD[2] |   1   |   1   |  DCP  |   0   | CH[2] | CH[1] | CH[0] |  
 ***********************************************************************************************/
-void LTC6811_Adcv(void)
+void LTC6811_Adcv(uint8_t MD,uint8_t DCP, uint8_t CH)
 {
-
 	uint8_t cmd[4];
 	uint16_t cmd_pec;
+	uint8_t md_bits;
 
-	cmd[0] = g_ADCV[0];
-	cmd[1] = g_ADCV[1];
+	md_bits = (MD & 0x02) >> 1;
+	cmd[0] = md_bits + 0x02;
+	md_bits = (MD & 0x01) << 7;
+	cmd[1] = md_bits + 0x60 + (DCP<<4) + CH;
 
 	cmd_pec = Pec15_Calc(2, g_ADCV);
 	cmd[2] = (uint8_t)(cmd_pec >> 8);
@@ -308,7 +328,7 @@ void LTC6811_Adcv(void)
  
 		0: No PEC error detected
   
-		-1: PEC error detected, retry read
+		1: PEC error detected, retry read
  
  *************************************************/
 uint8_t LTC6811_ReadCellVolt(uint8_t reg,uint16_t cell_codes[2][12])
@@ -340,7 +360,7 @@ uint8_t LTC6811_ReadCellVolt(uint8_t reg,uint16_t cell_codes[2][12])
 		        data_pec = Pec15_Calc(6, &cell_data[current_ic * LTC6811_REG_LEN]);
 		        if(received_pec != data_pec)
 		        {
-		          	pec_error = -1;																		
+		          	pec_error = 1;																		
 		        }
 				data_counter=data_counter+2;															
 			}
@@ -364,13 +384,13 @@ uint8_t LTC6811_ReadCellVolt(uint8_t reg,uint16_t cell_codes[2][12])
 	        
 			if(received_pec != data_pec)
 			{
-				pec_error = -1;															
+				pec_error = 1;															
 			}
 			data_counter= data_counter + 2; 																													
 		}
   	}
     
-	return (pec_error);
+	return pec_error;
 }
 
 
@@ -450,20 +470,24 @@ Command Code:
 |---------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
 |g_ADAX:	|   0   |   0   |   0   |   0   |   0   |   1   |   0   | MD[1] | MD[2] |   1   |   1   |  DCP  |   0   | CHG[2]| CHG[1]| CHG[0]| 
 *********************************************************************************************************/
-void LTC6811_Adax(void)
+void LTC6811_Adax(uint8_t MD,uint8_t CHG)
 {
-  uint8_t cmd[4];
-  uint16_t cmd_pec;
- 
-  cmd[0] = g_ADAX[0];
-  cmd[1] = g_ADAX[1];
-  cmd_pec = Pec15_Calc(2, g_ADAX);
-  cmd[2] = (uint8_t)(cmd_pec >> 8);
-  cmd[3] = (uint8_t)(cmd_pec);
- 
-  Set_Ltc6811(0b0);
-  SPI_Write_Array(4,cmd);
-  Set_Ltc6811(0b1);
+	uint8_t cmd[4];
+	uint16_t cmd_pec;
+	uint8_t md_bits;
+
+	md_bits = (MD & 0x02) >> 1;
+	cmd[0]  = md_bits + 0x04;
+	md_bits = (MD & 0x01) << 7;
+	cmd[1] = md_bits + 0x60 + CHG;
+
+	cmd_pec = Pec15_Calc(2, g_ADAX);
+	cmd[2] = (uint8_t)(cmd_pec >> 8);
+	cmd[3] = (uint8_t)(cmd_pec);
+
+	Set_Ltc6811(0b0);
+	SPI_Write_Array(4,cmd);
+	Set_Ltc6811(0b1);
 }
 
 /***********************************************************************************//**
@@ -486,7 +510,7 @@ void LTC6811_Adax(void)
  
   0: No PEC error detected
   
- -1: PEC error detected, retry read
+  1: PEC error detected, retry read
  *************************************************/
 int8_t LTC6811_ReadAux(uint8_t reg,uint16_t aux_codes[ModuleAmount][6])
 {
@@ -519,7 +543,7 @@ int8_t LTC6811_ReadAux(uint8_t reg,uint16_t aux_codes[ModuleAmount][6])
 				data_pec = Pec15_Calc(BYT_IN_REG, &data[current_ic*NUM_RX_BYT]);
 				if(received_pec != data_pec)
 				{
-					pec_error = -1;
+					pec_error = 1;
 				}
 				data_counter=data_counter+2;																							
 			}
@@ -544,13 +568,13 @@ int8_t LTC6811_ReadAux(uint8_t reg,uint16_t aux_codes[ModuleAmount][6])
 			data_pec = Pec15_Calc(BYT_IN_REG, &data[current_ic*NUM_RX_BYT]);
 			if(received_pec != data_pec)
 			{
-				pec_error = -1;
+				pec_error = 1;
 			}
 			data_counter=data_counter+2;												
 		}
 	}
 
-	return (pec_error);
+	return pec_error;
 }
 
 

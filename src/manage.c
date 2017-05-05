@@ -665,14 +665,79 @@ void TskBlncMgt(void)
 
 //============================================================================
 // Function    : TskAfeMgt 模拟前端 analog front end
-// Description : 该函数实现LTC6803-3的启动转换、读取数据、数据计算、均衡等功能
+// Description : 该函数实现LTC6811-1的启动转换、读取数据、数据计算、均衡等功能
 //               实现和状态切换
 // Parameters  : none
 // Returns     : none
 //============================================================================
 void TskAfeMgt(void)
 {
-	
+	static uint8_t ComErrCnt = 5;
+	static AfeStateTypedef AfeState = AFE_VOLT_CNVT;
+        
+	switch (AfeState)
+	{
+	case AFE_VOLT_CNVT:
+		LTC6811_Adcv(MD_NORMAL,DCP_ENABLED,CELL_CH_ALL);  			//启动单体电压转换
+		AfeState = AFE_READ_VOLT;  	//状态切换
+		break;
+
+	case AFE_READ_VOLT:
+		if (!LTC6811_ReadCellVolt(0,g_ArrayLtc6811Unit.cellVolt))
+		{
+			AfeState = AFE_VOLT_DETECT;
+			g_SystemError.ltc_com = 0;
+			ComErrCnt = 5;
+		}
+		else
+		{
+			AfeState = AFE_VOLT_CNVT;
+
+			/* mcu与ltc6803 spi通信错误检测 */
+			if (ComErrCnt)
+			{
+				ComErrCnt--;
+			}
+			else 
+			{
+				g_SystemError.ltc_com = 1;
+				g_FaultRecord.ltc_com ++;
+				if (g_ProtectDelayCnt > RELAY_ACTION_DELAY_1S)
+				{
+					g_ProtectDelayCnt = RELAY_ACTION_DELAY_1S;
+				}
+			}
+		}
+		break;
+	case AFE_VOLT_DETECT:
+		DetectMaxMinAvgCellVolt();
+		DetectCellsOverVolt();
+		DetectCellsUnderVolt();
+		DetectCellsVoltImba();
+		DetectPackOv();
+		DetectPackUv();    
+		AfeState = AFE_TEMP_CNVT;//AFE_BALANCE;
+		break;
+
+	case AFE_TEMP_CNVT:
+		LTC6811_Adax(MD_NORMAL,AUX_CH_ALL);  	//启动温度转换
+		AfeState = AFE_READ_TEMP;  				//状态切换
+		break;
+
+	case AFE_READ_TEMP:
+        LTC6811_ReadAux(0,g_ArrayLtc6811Unit.temperature);;
+        AfeState = AFE_BALANCE;					// AFE_CAL_TEMP;
+		break;
+		
+	case AFE_BALANCE:
+		TskBlncMgt();
+		AfeState = AFE_VOLT_CNVT;
+		break;
+
+	default:
+		AfeState = AFE_VOLT_CNVT;
+		break;
+   }
 }
 
 //----------------------------------------------------------------------------

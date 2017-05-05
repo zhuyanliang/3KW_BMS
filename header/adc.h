@@ -32,10 +32,8 @@ extern int16_t  g_CurrentOffset; //电流的校准偏移
 
 //移植的时候根据需要修改以下宏定义
 //---------------------------- 各模拟量输入通道 ------------------------------
-#define CAHNNEL_ISOVAL			AD_Channel_0 //	绝缘检测通道
 #define CHANNEL_TBAVAL          AD_Channel_3 // PCB板子温度 
-#define CHANNEL_ILOW            AD_Channel_6// 电流传感器
-#define CHANNEL_IHIGH           AD_Channel_5
+#define CHANNEL_CURRENT         AD_Channel_5
 #define CHANNEL_THXVAL          AD_Channel_7  // 热敏电阻数值 
 #define CHANNEL_12VD			AD_Channel_8  // 掉电检测
 #define CHANNEL_5VD				AD_Channel_9 

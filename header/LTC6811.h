@@ -126,8 +126,8 @@ Copyright 2013 Linear Technology Corp. (LTC)
 
 typedef struct 
 {
-	int16_t  cellVolt[ModuleAmount][12]; 
-	uint16_t temperature[ModuleAmount][5];
+	uint16_t  cellVolt[ModuleAmount][12]; 
+	uint16_t temperature[ModuleAmount][6];
 }Ltc6811_Parameter;
 
 typedef struct
@@ -146,15 +146,15 @@ typedef struct
 	uint8_t pwmreg[6];
 }LTC6811_RegStr;
 
-extern Ltc6811_Parameter 	g_ArrayLtc6811Unit;
-extern LTC6811_RegStr		g_Ltc6811CfgReg[ModuleAmount];
+extern volatile Ltc6811_Parameter 	g_ArrayLtc6811Unit;
+extern volatile LTC6811_RegStr		g_Ltc6811CfgReg[ModuleAmount];
 
 void 		LTC6811_Initialize(void);
 void 		LTC6811_WriteCfgReg(void);
-void 		LTC6811_Adcv(void);
+void 		LTC6811_Adcv(uint8_t MD,uint8_t DCP, uint8_t CH);
 uint8_t 	LTC6811_ReadCellVolt(uint8_t reg,uint16_t cell_codes[2][12]);
 void 		LTC6811_Rdcv_Reg(uint8_t reg,uint8_t *data);
-void 		LTC6811_Adax(void);
+void 		LTC6811_Adax(uint8_t MD,uint8_t CHG);
 int8_t 		LTC6811_ReadAux(uint8_t reg,uint16_t aux_codes[ModuleAmount][6]);
 void 		LTC6811_Rdaux_Reg(uint8_t reg,uint8_t *data);
 void 		LTC6811_ClrCell(void);

@@ -123,8 +123,6 @@ void TRIG_TEST(void)
 	LATDbits.LATD0 ^= 0b1;   
 }
 
-uint8_t adcvolt[2][12];
-uint8_t adcaux[2][5];
 /*
  * 
  */
@@ -145,20 +143,18 @@ void main(void)
         switch(taskList++)
         {
 		case 0:
-			LTC6811_Adcv();
+			TskAfeMgt();
 			break;
 		case 1:		
-            LTC6811_ReadCellVolt(0,g_ArrayLtc6811Unit.cellVolt);
 			break;
 		case 2:
-			TskCanMgt();
-            TskLcdShow();
+            TskCanMgt();
 			break;
 		case 3:
-            LTC6811_Adax();
+			TskLcdShow();
 			break;
 		case 4:
-            LTC6811_ReadAux(0,g_ArrayLtc6811Unit.temperature);
+            
 			TaskLedMgt();
 			LCD_DisplayDriver();
 			taskList = 0;
@@ -191,6 +187,7 @@ void System_Init(void)
 	TskBatteryPra_Init();	// 电池部分参数的初始化
 	TskCan_Init();
 	LTC6811_Initialize();
+    
 
 	ClrWdt();
 }

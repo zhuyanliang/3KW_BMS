@@ -788,7 +788,35 @@ uint8_t DetectPackChargeFinish(void)
 //============================================================================
 void DetectMaxMinAvgCellVolt(void)
 {
-	
+	uint8_t i,j;
+	uint16_t maxVolt = 0;
+	uint16_t minVolt = 5000;
+	uint32_t sumVolt = 0;
+
+	for(i=0; i<ModuleAmount; i++)
+	{
+		for(j=0; j<(CellsAmount/ModuleAmount); j++)
+		{
+			if(maxVolt < g_ArrayLtc6811Unit.cellVolt[i][j])
+			{
+				maxVolt = g_ArrayLtc6811Unit.cellVolt[i][j];
+				g_BatteryParameter.MaxCellNum = i * CellsAmount / ModuleAmount + j;
+			}
+
+			if(minVolt > g_ArrayLtc6811Unit.cellVolt[i][j])
+			{
+				minVolt = g_ArrayLtc6811Unit.cellVolt[i][j];
+				g_BatteryParameter.MinCellNum = i * CellsAmount / ModuleAmount + j;
+			}
+
+			sumVolt += g_ArrayLtc6811Unit.cellVolt[i][j];
+		}
+	}
+
+	g_BatteryParameter.CellVoltMax = maxVolt;
+	g_BatteryParameter.CellVoltMin = minVolt;
+	g_BatteryParameter.voltage = sumVolt / 100;
+	g_BatteryParameter.CellVoltAvg = (uint16_t)(sumVolt / CellsAmount);  
 }
 
 

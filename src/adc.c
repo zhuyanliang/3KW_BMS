@@ -27,27 +27,23 @@ const ThermLookupTypedef ThermLookupTable[] =
 void ADC_IOInit(void)
 {
 	//1.配置对应的管脚为模拟端口
-    ANCON0 = 0xF1;  //配置AN0,AN4,AN5,AN6,AN7
-    ANCON1 = 0x03;  //配置AN8,AN9
+    ANCON0 = 0x28;  //配置AN3,AN5
+    ANCON1 = 0x01;  //配置AN8
 
     //set ad input pin direct as input
-    TRISAbits.TRISA0 = 1;   //AN0  绝缘检测
     TRISAbits.TRISA3 = 1;   //AN3  PCB板温度采集
     TRISBbits.TRISB1 = 1;   //AN8  检测电压是否为12V
-    TRISBbits.TRISB4 = 1;   //AN9  检测电压是否为5V
-    TRISEbits.TRISE0 = 1;   //AN5  母线电流
-    TRISEbits.TRISE1 = 1;   //AN6  母线电流
-    TRISEbits.TRISE2 = 1;   //AN7 热敏电阻采集端口
+    TRISEbits.TRISE0 = 1;   //AN5  电流检测
 
     ADCON1bits.VCFG 	= 0b00;     // ADC的正端参考电压选择 AVdd 
-    ADCON1bits.VNCFG 	= 0b0;     // ADC的负端参考电压选择 AVss
-    ADCON1bits.CHSN 	= 0b0;      // 模拟反相通道选择位 通道00（AVss） 
+    ADCON1bits.VNCFG 	= 0b0;   	// ADC的负端参考电压选择 AVss
+    ADCON1bits.CHSN 	= 0b0;    	// 模拟反相通道选择位 通道00（AVss） 
 
-    ADCON2bits.ADFM 	= 0b1;     // 右对齐
-    ADCON2bits.ADCS 	= 0b110;     // AD clock : Fosc/64, Tad=1us 
-    ADCON2bits.ACQT 	= 0b010;     // 采样时间为4个AD clock
+    ADCON2bits.ADFM 	= 0b1;   	// 右对齐
+    ADCON2bits.ADCS 	= 0b110; 	// AD clock : Fosc/64, Tad=1us 
+    ADCON2bits.ACQT 	= 0b010;  	// 采样时间为4个AD clock
 
-    ADCON0bits.ADON 	= 0b1;     // 使能A/D 转换器
+    ADCON0bits.ADON 	= 0b1;     	// 使能A/D 转换器
 }
 
 //============================================================================
