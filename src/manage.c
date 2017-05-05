@@ -298,7 +298,7 @@ void TskCurrentMgt(void)
 	uint8_t i;
 	static uint8_t curr_flg = 0;
 
-	ADC_Convert(CHANNEL_IHIGH);  
+	ADC_Convert(CHANNEL_CURRENT); 
 	
 	while(ADCON0bits.GO);  //等待转换完成，大约需要15us
 	//第一次启动时，一次性读取8个电流值
@@ -306,22 +306,20 @@ void TskCurrentMgt(void)
 	{
 		for ( i = 0; i < 8; i++ )
 		{
-			g_AdcConvertValue.CurHighRaw[i] = ADC_GetCvtRaw();
+			g_AdcConvertValue.Current[i] = ADC_GetCvtRaw();
 		} 
 		curr_flg = 1;    
 	}
 	else //以后每次更新一个电压值
 	{ 
-		g_AdcConvertValue.CurHighRaw[g_AdcConvertValue.CurHighIndex++ & 0x07] = ADC_GetCvtRaw();
+		g_AdcConvertValue.Current[g_AdcConvertValue.CurIndex++ & 0x07] = ADC_GetCvtRaw();
 	}
 	
-	g_AdcConvertValue.CurHighAvg = ADC_AverageCalculate(g_AdcConvertValue.CurHighRaw);
+	g_AdcConvertValue.CurAvg = ADC_AverageCalculate(g_AdcConvertValue.Current);
 
 	//根据ADC采样值，结合电流采集器的特性，获取真实的电流值
-	g_BatteryParameter.current = (int16_t)((((int32_t)g_AdcConvertValue.CurHighAvg * 6250) >> 12) - 3125) - g_CurrentOffset;
-	//g_BatteryParameter.current = (int16_t)((g_AdcConvertValue.CurHighAvg-g_CurrentOffset)/3276.0 * 5000); 
-	//g_BatteryParameter.current = (int16_t)((g_AdcConvertValue.CurHighAvg-g_CurrentOffset)/4096.0 * 5000); 
-	//g_BatteryParameter.current -= 2500;
+	g_BatteryParameter.current = 0x00;
+
 	//检查电池包电流是否超过限定值
 	DetectPackOverCurrent();
 }
@@ -335,7 +333,46 @@ void TskCurrentMgt(void)
 //============================================================================
 void TskCellTempMgt(void)
 {
-	
+	static int8_t  state = 0;
+
+	switch(state++)
+	{
+	case 0:
+		g_BatteryParameter.CellTemp[0] = ADCToTempVal(g_ArrayLtc6811Unit.temperature[0][1]);
+		break;
+	case 1:
+		g_BatteryParameter.CellTemp[1] = ADCToTempVal(g_ArrayLtc6811Unit.temperature[0][2]); 
+		break;
+	case 2:
+		g_BatteryParameter.CellTemp[2] = ADCToTempVal(g_ArrayLtc6811Unit.temperature[0][3]);
+		break;
+	case 3:
+		g_BatteryParameter.CellTemp[3] = ADCToTempVal(g_ArrayLtc6811Unit.temperature[0][4]); 
+		break;
+	case 4:
+		g_BatteryParameter.CellTemp[4] = ADCToTempVal(g_ArrayLtc6811Unit.temperature[1][1]);
+		break;
+	case 5:
+		g_BatteryParameter.CellTemp[5] = ADCToTempVal(g_ArrayLtc6811Unit.temperature[1][2]); 
+		break;
+	case 6:
+		g_BatteryParameter.CellTemp[6] = ADCToTempVal(g_ArrayLtc6811Unit.temperature[1][3]);
+		break;
+	case 7:
+		g_BatteryParameter.CellTemp[7] = ADCToTempVal(g_ArrayLtc6811Unit.temperature[1][4]); 
+		break;
+	case 8:
+		// 检测温度值，并得到单体最大最小温度值
+		DetectMaxMinCellTemp();
+		DetectCellsOverTemp();
+		DetectCellsUnderTemp();
+		DetectCellTempDlt();
+		state = 0;
+		break;
+	default:
+		state = 0;
+		break;
+	}
 }
 
 

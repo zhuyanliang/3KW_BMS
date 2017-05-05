@@ -14,8 +14,6 @@ extern "C" {
 
 #include "common.h"
 
-extern int16_t  g_CurrentOffset; //电流的校准偏移
-
 //--------------------------- define adc channel -----------------------------
 #define AD_Channel_0             ((uint8_t)0x00)
 #define AD_Channel_1             ((uint8_t)0x01)
@@ -42,21 +40,15 @@ typedef struct {
 
 	// ADC原始值缓冲区，做平均值用
    uint16_t AmbTempRaw[8];  	// 存储PCB板子的温度
-   uint16_t TheTempRaw[4][8];   // 存储4路温度传感器数值
-   uint16_t CurLowRaw[8];		// 存储电流传感器数据
-   uint16_t CurHighRaw[8];
+   uint16_t Current[8];		// 存储电流传感器数据
 
 	// 缓冲区索引指针  
    uint8_t AmbTempIndex;
-   uint8_t TheTempIndex[4];
-   uint8_t CurLowIndex;
-   uint8_t CurHighIndex;
+   uint8_t CurIndex;
 
 	// ADC采样平均值，还是Raw数据
    uint16_t AmbTempAvg;		// PCB板子温度
-   uint16_t TheTempAvg[4];
-   uint16_t CurLowAvg;
-   uint16_t CurHighAvg;
+   uint16_t CurAvg;
 }AdcRawTypedef;  
 
 // ADC数值与温度查找表数据结构

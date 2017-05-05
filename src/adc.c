@@ -1,6 +1,5 @@
 #include "include.h"
 
-int16_t  g_CurrentOffset = 0; //电流的校准偏移
 AdcRawTypedef g_AdcConvertValue; 
 
 // ADC值与温度的对照表 AD值为mV
@@ -134,18 +133,14 @@ void CurrentZeroOffsetAdjust(void)
 	{
 		for (i=0; i<8; i++)
 		{
-			ADC_Convert(CHANNEL_IHIGH);  
+			ADC_Convert(CHANNEL_CURRENT);  
 			while(ADCON0bits.GO);  //等待转换完成，大约需要15us
-			g_AdcConvertValue.CurHighRaw[g_AdcConvertValue.CurHighIndex++ & 0x07] = ADC_GetCvtRaw();
+			g_AdcConvertValue.Current[g_AdcConvertValue.CurIndex++ & 0x07] = ADC_GetCvtRaw();
 		}
 
-		g_AdcConvertValue.CurHighAvg = ADC_AverageCalculate(g_AdcConvertValue.CurHighRaw);
-        //g_CurrentOffset += (g_AdcConvertValue.CurHighAvg - 2048);
-		g_CurrentOffset += (int16_t)((((int32_t)g_AdcConvertValue.CurHighAvg * 6250) >> 12) - 3125);
+		g_AdcConvertValue.CurAvg = ADC_AverageCalculate(g_AdcConvertValue.Current);
+		//g_CurrentOffset += (int16_t)((((int32_t)g_AdcConvertValue.CurAvg * 6250) >> 12) - 3125);
 	}
-
-	g_CurrentOffset >>= 3;
-	//g_CurrentOffset += 2;
 }
 
 
@@ -193,24 +188,8 @@ int8_t ADCToTempVal(uint16_t dat)
 //============================================================================
 void TskAdc_Init(void)
 {
-	uint8_t i;
-
 	g_AdcConvertValue.AmbTempIndex = 0;
-	g_AdcConvertValue.TheTempIndex[0] = 0;
-	g_AdcConvertValue.TheTempIndex[1] = 0;
-	g_AdcConvertValue.TheTempIndex[2] = 0;  
-	g_AdcConvertValue.TheTempIndex[3] = 0; 
-	g_AdcConvertValue.CurLowIndex = 0;
-	g_AdcConvertValue.CurHighIndex = 0;
-
-	g_CurrentOffset = 0;
-	
-	for (i=0; i<8; i++)
-	{
-		g_AdcConvertValue.CurHighRaw[i] = 2048;
-		g_AdcConvertValue.CurLowRaw[i] = 2048;
-	}
-
+	g_AdcConvertValue.CurIndex = 0;
 }
 
 

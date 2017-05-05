@@ -129,6 +129,7 @@ void TRIG_TEST(void)
 void main(void) 
 {
 	static uint8_t taskList = 0;
+	static uint8_t cnt = 0;
 	
     System_Init();    
 	
@@ -138,23 +139,40 @@ void main(void)
     for(;;)
     {
 		// 查询优先级较高任务
+		//TskCurrentMgt();
+		Soc_AhAcc();
+		Soh_ChargeAhAcc();
+		ClrWdt();
+		//DetectCharger();
+		//TskBatteryModeMgt();
+		
 		TskCanRecMsgToBuf();
+
+		if(16 == cnt++)
+		{
+			cnt = 0;
+			CAN_SendHeartToTxBuf();
+			CAN_SendSTDBattInfoToTxBuf();
+		}
 		
         switch(taskList++)
         {
 		case 0:
 			TskAfeMgt();
 			break;
-		case 1:		
+		case 1:	
+			TskSOCMgt();
 			break;
 		case 2:
             TskCanMgt();
+			TskSohMgt();
 			break;
 		case 3:
+			TskCellTempMgt();
 			TskLcdShow();
 			break;
 		case 4:
-            
+            TskFaultStoreMgt(); 
 			TaskLedMgt();
 			LCD_DisplayDriver();
 			taskList = 0;
@@ -176,7 +194,8 @@ void System_Init(void)
 
 	ISR_Init();     // 中断处理程序初始化
 	Timer_Init();
-
+	ADC_IOInit();   // ADC初始化
+	
 	SPI_Init();      // SPI初始化
 	Gpio_Init();
 	Lcd_Init();
@@ -187,8 +206,19 @@ void System_Init(void)
 	TskBatteryPra_Init();	// 电池部分参数的初始化
 	TskCan_Init();
 	LTC6811_Initialize();
-    
-
+    TskAdc_Init();			// 模拟模块参数初始化
+	TskCan_Init();
+	Soc_Init();
+	Soh_Init();
+	FaultStoreInit();
 	ClrWdt();
+
+	g_BatteryMode 			= IDLE;
+	g_ProtectDelayCnt 		= 0xffff;
+	g_SystemWarning.all 	= 0;    // clear system warning flags
+
+	SystemSelftest();  		// 系统自检
+	Soc_PowerOnAdjust();	// SOC 上电校准
+	
 }
 

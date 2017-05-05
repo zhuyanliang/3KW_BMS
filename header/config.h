@@ -38,7 +38,7 @@ extern "C" {
 
 
 //配置检测温度数量
-#define MAX_TEMP_SENSOR         ((uint8_t)4)
+#define MAX_TEMP_SENSOR         ((uint8_t)8)
 
 // SOC操作参数    
 #define  SOC_UPDATE_PERIOD_MS         		2000    // update the soc every 2 seconds

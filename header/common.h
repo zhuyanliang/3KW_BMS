@@ -68,7 +68,7 @@ typedef struct
 	uint16_t 			CellVoltAvg;          	// 电池包平均单体电压
 	uint8_t  			MaxCellNum;				// 最大最小电压电芯编号
 	uint8_t  			MinCellNum;
-	int8_t   			CellTemp[4];          	// cell temperature 只有4路温度  
+	int8_t   			CellTemp[8];          	// cell temperature 8路温度  
 	int8_t   			CellTempMax;          
 	int8_t   			CellTempMin;   
 	int8_t  			CellTempAvg; 
