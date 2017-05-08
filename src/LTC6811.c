@@ -93,42 +93,6 @@ static const unsigned int crc15Table[256] =
 	0x4e3e, 0x450c, 0x8095
 }; 
 
-/*!
-  6811 conversion command variables.  
-*/
-uint8_t g_ADCV[2]; //!< Cell Voltage conversion command.
-uint8_t g_ADAX[2]; //!< GPIO conversion command.
-
-
-/*!*******************************************************************************************************************
- \brief Maps  global ADC control variables to the appropriate control bytes for each of the different ADC commands
- 
-@param[in] uint8_t MD The adc conversion mode
-@param[in] uint8_t DCP Controls if Discharge is permitted during cell conversions
-@param[in] uint8_t CH Determines which cells are measured during an ADC conversion command
-@param[in] uint8_t CHG Determines which GPIO channels are measured during Auxiliary conversion command
-Command Code:
--------------
-|command	    |  15   |  14   |  13   |  12   |  11   |  10   |   9   |   8   |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   | 
-|-----------  |-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
-|g_ADCV:	    |   0   |   0   |   0   |   0   |   0   |   0   |   1   | MD[1] | MD[2] |   1   |   1   |  DCP  |   0   | CH[2] | CH[1] | CH[0] | 
-|g_ADAX:	    |   0   |   0   |   0   |   0   |   0   |   1   |   0   | MD[1] | MD[2] |   1   |   1   |  DCP  |   0   | CHG[2]| CHG[1]| CHG[0]| 
- ******************************************************************************************************************/
-static void Set_Adc(uint8_t MD,uint8_t DCP, uint8_t CH, uint8_t CHG)
-{
-	uint8_t md_bits;
-
-	md_bits = (MD & 0x02) >> 1;
-	g_ADCV[0] = md_bits + 0x02;
-	md_bits = (MD & 0x01) << 7;
-	g_ADCV[1] =  md_bits + 0x60 + (DCP<<4) + CH;
-
-	md_bits = (MD & 0x02) >> 1;
-	g_ADAX[0] = md_bits + 0x04;
-	md_bits = (MD & 0x01) << 7;
-	g_ADAX[1] = md_bits + 0x60 + CHG;
-}
-
 static void SPI_Write_Array(uint8_t len, uint8_t data[])
 {
 	for(uint8_t i = 0; i < len; i++)
@@ -189,8 +153,6 @@ uint16_t Pec15_Calc(uint8_t len, uint8_t *data)
 void LTC6811_Initialize(void)
 {
 	TRISCbits.TRISC2 = 0b0;  // LTC6811µÄCS¹Ü½Å
-	
-	//Set_Adc(MD_NORMAL,DCP_ENABLED,CELL_CH_ALL,AUX_CH_ALL);
 
 	for(uint8_t i=0;i<ModuleAmount;i++)
 	{
@@ -265,6 +227,8 @@ void LTC6811_WriteCfgReg(void)
 		cmd_index = cmd_index + 2;
 	}
 
+	
+	
 	Set_Ltc6811(0b0);
 	SPI_Write_Array(4+8*ModuleAmount,cmd);
 	Set_Ltc6811(0b1);
@@ -296,7 +260,7 @@ void LTC6811_Adcv(uint8_t MD,uint8_t DCP, uint8_t CH)
 	md_bits = (MD & 0x01) << 7;
 	cmd[1] = md_bits + 0x60 + (DCP<<4) + CH;
 
-	cmd_pec = Pec15_Calc(2, g_ADCV);
+	cmd_pec = Pec15_Calc(2, cmd);
 	cmd[2] = (uint8_t)(cmd_pec >> 8);
 	cmd[3] = (uint8_t)(cmd_pec);
 
@@ -447,10 +411,9 @@ void LTC6811_Rdcv_Reg(uint8_t reg,uint8_t *data)
 	pec = Pec15_Calc(2, cmd);
 	cmd[2] = (uint8_t)(pec >> 8);
 	cmd[3] = (uint8_t)(pec); 
-  
+	
 	Set_Ltc6811(0b0);
 	SPI_Write_Read(cmd,4,data,LTC6811_REG_LEN*ModuleAmount);
-	
 	Set_Ltc6811(0b1);
 }
 
@@ -481,7 +444,7 @@ void LTC6811_Adax(uint8_t MD,uint8_t CHG)
 	md_bits = (MD & 0x01) << 7;
 	cmd[1] = md_bits + 0x60 + CHG;
 
-	cmd_pec = Pec15_Calc(2, g_ADAX);
+	cmd_pec = Pec15_Calc(2, cmd);
 	cmd[2] = (uint8_t)(cmd_pec >> 8);
 	cmd[3] = (uint8_t)(cmd_pec);
 
@@ -679,7 +642,7 @@ void LTC6811_ClrAux(void)
 	cmd_pec = Pec15_Calc(2, cmd);
 	cmd[2] = (uint8_t)(cmd_pec >> 8);
 	cmd[3] = (uint8_t)(cmd_pec);
-	//4
+	
 	Set_Ltc6811(0b0);
 	SPI_Write_Read(cmd,4,0,0);
 	Set_Ltc6811(0b1);

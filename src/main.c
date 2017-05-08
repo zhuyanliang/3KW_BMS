@@ -133,35 +133,37 @@ void main(void)
 	
     System_Init();    
 	
-	EnableWatchDog();
+	//EnableWatchDog();
 	TskLcdShow();
 
     for(;;)
     {
 		// 查询优先级较高任务
 		//TskCurrentMgt();
-		Soc_AhAcc();
-		Soh_ChargeAhAcc();
+		//Soc_AhAcc();
+		//Soh_ChargeAhAcc();
 		ClrWdt();
 		//DetectCharger();
 		//TskBatteryModeMgt();
 		
-		TskCanRecMsgToBuf();
+		//TskCanRecMsgToBuf();
 
-		if(16 == cnt++)
-		{
-			cnt = 0;
-			CAN_SendHeartToTxBuf();
-			CAN_SendSTDBattInfoToTxBuf();
-		}
+//		if(16 == cnt++)
+//		{
+//			cnt = 0;
+//			CAN_SendHeartToTxBuf();
+//			CAN_SendSTDBattInfoToTxBuf();
+//		}
 		
         switch(taskList++)
         {
 		case 0:
+			//LTC6811_Adcv(MD_NORMAL,DCP_ENABLED,CELL_CH_ALL); 
 			TskAfeMgt();
 			break;
 		case 1:	
-			TskSOCMgt();
+			//LTC6811_ReadCellVolt(0,g_ArrayLtc6811Unit.cellVolt);
+			//TskSOCMgt();
 			break;
 		case 2:
             TskCanMgt();

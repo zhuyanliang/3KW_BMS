@@ -297,6 +297,7 @@ void TskCurrentMgt(void)
 {
 	uint8_t i;
 	static uint8_t curr_flg = 0;
+    static float temp; 
 
 	ADC_Convert(CHANNEL_CURRENT); 
 	
@@ -318,7 +319,8 @@ void TskCurrentMgt(void)
 	g_AdcConvertValue.CurAvg = ADC_AverageCalculate(g_AdcConvertValue.Current);
 
 	//根据ADC采样值，结合电流采集器的特性，获取真实的电流值
-	g_BatteryParameter.current = 0x00;
+    temp = (float)(g_AdcConvertValue.CurAvg * 5)/4096 - 1.02;
+	g_BatteryParameter.current = temp*400;
 
 	//检查电池包电流是否超过限定值
 	DetectPackOverCurrent();
@@ -762,7 +764,7 @@ void TskAfeMgt(void)
 		break;
 
 	case AFE_READ_TEMP:
-        LTC6811_ReadAux(0,g_ArrayLtc6811Unit.temperature);;
+        LTC6811_ReadAux(0,g_ArrayLtc6811Unit.temperature);
         AfeState = AFE_BALANCE;					// AFE_CAL_TEMP;
 		break;
 		
