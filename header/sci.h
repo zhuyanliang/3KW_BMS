@@ -12,6 +12,7 @@
 extern "C" {
 #endif
 
+#define SCI_RXBUF_LEN	2
 
 
 #define SCI_TX_PORT     LATDbits.LATD3
@@ -19,32 +20,36 @@ extern "C" {
 #define EnableSCI()		LATDbits.LATD1 = 0b1
 #define DisableSCI()	LATDbits.LATD1 = 0b0
 
+typedef struct
+{
+	uint8_t cmd;
+	uint8_t data;
+	uint8_t crc;
+}SciRXTypedef;
     
 // 收发器结构体参数定义
 typedef struct
 {
-   uint8_t DR;  	// SCI通信发送寄存器
-   uint8_t TBCNT;  	// 发送位计数器
-   uint8_t RBCNT;  	// 接收位计数器
+	uint16_t 		DR;  				// SCI通信发送寄存器
+	uint8_t 		TBCNT;  			// 发送位计数器
+	uint8_t 		RBCNT;  			// 接收位计数器
+	SciRXTypedef 	RxBuf[SCI_RXBUF_LEN];
+	union
+	{
+		uint8_t Byte;
 
-   union
-   {
-      uint8_t Byte;
-
-      struct 
-      {
-         unsigned TxEF :1;      // 发送缓冲器空，“1”有效
-         unsigned RxFF :1;      // 接收缓冲器满, “1”有效
-         unsigned TxRx :1;      // "1"发送模式, "0"接收模式
-         unsigned      :5; 
-      };
-   }STAT;
+		struct 
+		{
+			unsigned TxEF :1;      // 发送缓冲器空，“1”有效
+			unsigned RxFF :1;      // 接收缓冲器满, “1”有效
+			unsigned TxRx :1;      // "1"发送模式, "0"接收模式
+			unsigned      :5; 
+		};
+	}STAT;
 
 }SciTypedef;
 
-
-
-
+extern SciTypedef g_SCIData;
 
 void Sci_Init(void); 
 void Sci_StartSend(void);

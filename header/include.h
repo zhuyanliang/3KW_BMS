@@ -35,6 +35,7 @@ extern "C" {
 #include "fault.h"  
 #include "canbus.h"
 #include "lcd.h"
+#include "sci.h"
 
 #ifdef	__cplusplus
 }

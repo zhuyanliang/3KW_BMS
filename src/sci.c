@@ -8,24 +8,8 @@
 
 #include "include.h"
 
-volatile SciMsgRxBufTypedef g_sciRxBuf;
-volatile SciTypedef g_sciTx;
-volatile SciTypedef g_sciRx;
+SciTypedef g_SCIData;
 
-
-volatile uint8_t 	g_battSeriNum = 0x00;		// 电池串数
-volatile uint8_t 	g_battPatallNum = 0x00;	// 电池并数
-volatile int8_t     g_battTemVal = 0x00;		// 电池温度
-
-volatile uint16_t 	g_year = 0x00;
-volatile uint16_t 	g_month = 0x00;
-volatile uint16_t 	g_date = 0x00;
-volatile uint16_t 	g_cycle = 0x00;
-volatile uint16_t 	g_historyHight = 0x00;
-volatile uint16_t 	g_historyLow = 0x00;
-
-volatile BOOL 		g_canSend = TRUE;
-volatile uint8_t 	g_battState[4] = {0x00};
 
 void Sci_Init(void)
 {
@@ -38,16 +22,6 @@ void Sci_Init(void)
 	DisableSCI();
 	SCI_TX_PORT = 0b0;
     Set_IdelMode();
-}
-
-void HistoryInfo_Init(void)
-{
-	g_year = 0x00;
-	g_month = 0x00;
-	g_date = 0x00;
-	g_cycle = 0x00;
-	g_historyHight = 0x00;
-	g_historyLow = 0x00;
 }
 
 void Timer1_IrqEnable(void)
@@ -94,7 +68,6 @@ void Set_IdelMode(void)
 	INTCONbits.INT0IE = 0b0; // 暂时禁止外部中断0
 	
 	Timer1_IrqDisable();	 // 禁止Timer1中断
-    g_canSend = TRUE;
 }
 
 void Set_TxMode(void)
@@ -111,52 +84,25 @@ void Set_RxMod(void)
 	INTCON2bits.INTEDG0 = 0b1;  // 设置上升沿触发中断
 	INTCONbits.INT0IF = 0b0;
 	INTCONbits.INT0IE = 0b1;  // 允许外部中断
-    
-    g_canSend = FALSE;
 }
 
 void Sci_StartSend(void)
 {
     SCI_TX_PORT = 0b0;
-    g_canSend = FALSE;
     
     SCI_SetClk(600);
     Timer1_IrqEnable();
 }
 
-BOOL Sci_IsRxBufFull(void)
-{
-	if((g_sciRxBuf.RxBuf_Wptr+1)%SCI_BUF_DEEP == g_sciRxBuf.RxBuf_Rptr)
-	{
-		return TRUE;
-	}
-	else
-	{
-		return FALSE;
-	}
-}
-
-BOOL Sci_IsRxBufEmpty(void)
-{
-	if (g_sciRxBuf.RxBuf_Rptr == g_sciRxBuf.RxBuf_Wptr)
-	{
-		return TRUE;
-	}
-	else
-	{
-		return FALSE;
-	}
-}
 
 void Sci_SendByte(void)
 {
-	static uint8_t txBitsCnt = 0x00;
 	static BOOL flag = FALSE;
 
 	if(FALSE == flag)
 	{
         SCI_TX_PORT = 0b1;
-		if(0x01 == (g_sciTx.Data.allData&0x01))
+		if(0x01 == (g_SCIData.DR&0x01))
 		{
 			SCI_SetClk(200);
 		}
@@ -171,13 +117,13 @@ void Sci_SendByte(void)
         SCI_TX_PORT = 0b0;
 		SCI_SetClk(100);
 		flag = 0;
-        txBitsCnt ++;
-        g_sciTx.Data.allData >>= 1;
+        g_SCIData.TBCNT ++;
+        g_SCIData.DR >>= 1;
 	}
 
-	if(txBitsCnt>=16)
+	if(g_SCIData.TBCNT >= 16)
 	{
-        txBitsCnt = 0;
+        g_SCIData.TBCNT = 0;
         flag = FALSE;
 		Set_RxMod();
 	}
