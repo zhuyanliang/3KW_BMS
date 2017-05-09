@@ -60,7 +60,7 @@ void Soc_PowerOnAdjust(void)
 
 	/* 启动单体电压转换 */
 	LTC6811_Adcv(MD_NORMAL,DCP_ENABLED,CELL_CH_ALL);  
-	DelayMs(15);
+	//DelayMs(15);
 
 	// 获取所有电芯电压
 	if (!LTC6811_ReadCellVolt(0,g_ArrayLtc6811Unit.cellVolt))

@@ -26,8 +26,8 @@ static BOOL DetectSecondWarning(void)
 			|| (g_SystemWarning.COV == WARNING_SECOND_LEVEL)   // cell过压故障
 			|| (g_SystemWarning.POV == WARNING_SECOND_LEVEL)
 			|| (g_SystemWarning.COC == WARNING_SECOND_LEVEL)// 充电过流
-			|| (g_SystemWarning.DOC == WARNING_SECOND_LEVEL)// 放点过流
-			|| (g_SystemWarning.ISO == WARNING_SECOND_LEVEL)
+			|| (g_SystemWarning.DOC == WARNING_SECOND_LEVEL)// 放电过流
+			|| (g_SystemWarning.CER == WARNING_SECOND_LEVEL)
 			|| (g_SystemWarning.VDIF == WARNING_SECOND_LEVEL)
 			|| (g_SystemWarning.TDIF == WARNING_SECOND_LEVEL))
 	{

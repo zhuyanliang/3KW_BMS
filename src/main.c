@@ -138,32 +138,30 @@ void main(void)
 
     for(;;)
     {
+    	g_SysTickMs += 2;
 		// 查询优先级较高任务
-		//TskCurrentMgt();
-		//Soc_AhAcc();
-		//Soh_ChargeAhAcc();
+		TskCurrentMgt();
+		Soc_AhAcc();
+		Soh_ChargeAhAcc();
 		ClrWdt();
-		//DetectCharger();
-		//TskBatteryModeMgt();
-		
-		//TskCanRecMsgToBuf();
+		DetectCharger();
+		TskBatteryModeMgt();
+		TskCanRecMsgToBuf();
 
-//		if(16 == cnt++)
-//		{
-//			cnt = 0;
-//			CAN_SendHeartToTxBuf();
-//			CAN_SendSTDBattInfoToTxBuf();
-//		}
+		if(16 == cnt++)
+		{
+			cnt = 0;
+			CAN_SendHeartToTxBuf();
+			CAN_SendSTDBattInfoToTxBuf();
+		}
 		
         switch(taskList++)
         {
 		case 0:
-			//LTC6811_Adcv(MD_NORMAL,DCP_ENABLED,CELL_CH_ALL); 
 			TskAfeMgt();
 			break;
 		case 1:	
-			//LTC6811_ReadCellVolt(0,g_ArrayLtc6811Unit.cellVolt);
-			//TskSOCMgt();
+			TskSOCMgt();
 			break;
 		case 2:
             TskCanMgt();
@@ -172,6 +170,7 @@ void main(void)
 		case 3:
 			TskCellTempMgt();
 			TskLcdShow();
+			TskSciMgt();
 			break;
 		case 4:
             TskFaultStoreMgt(); 
@@ -202,6 +201,7 @@ void System_Init(void)
 	Gpio_Init();
 	Lcd_Init();
 	ECAN_Init();
+	Sci_Init();
 
 	ClrWdt();
 
@@ -213,6 +213,7 @@ void System_Init(void)
 	Soc_Init();
 	Soh_Init();
 	FaultStoreInit();
+	Tsk_SCIInit();
 	ClrWdt();
 
 	g_BatteryMode 			= IDLE;

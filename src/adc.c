@@ -127,7 +127,7 @@ uint16_t ADC_AverageCalculate(uint16_t *TableEntry)
 void CurrentZeroOffsetAdjust(void)
 {
 	uint8_t i, j;
-	DelayMs(500);
+	//DelayMs(500);
 
 	for(j=0; j<8; j++)
 	{

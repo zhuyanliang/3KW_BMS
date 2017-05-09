@@ -105,7 +105,7 @@ typedef union
 		unsigned POV :2;		// 整包总压高
 		unsigned PUV :2;		// 整包总压低
 		unsigned TDIF :2;		// 电池温差大
-		unsigned ISO :2;		// 绝缘警告
+		unsigned CER :2;		// SCI通讯
 		unsigned     :2;
 	};
 }SysWarningDef;

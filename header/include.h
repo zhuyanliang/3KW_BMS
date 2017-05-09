@@ -36,6 +36,7 @@ extern "C" {
 #include "canbus.h"
 #include "lcd.h"
 #include "sci.h"
+#include "tsksci.h"
 
 #ifdef	__cplusplus
 }

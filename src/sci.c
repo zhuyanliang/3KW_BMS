@@ -8,7 +8,11 @@
 
 #include "include.h"
 
-SciTypedef g_SCIData;
+SciTypedef g_SCI;
+uint8_t g_SciSendBuf[MESSAGE_SEND_LEN];
+uint8_t g_SciRcvBuf[MESSAGE_RECEIVE_LEN];
+uint8_t g_SciByteCnt;
+uint8_t g_SciRxBufFull;
 
 
 void Sci_Init(void)
@@ -19,18 +23,25 @@ void Sci_Init(void)
     ANCON1bits.ANSEL10 = 0b0;
 
     TRISDbits.TRISD1 = 0b0;
-	DisableSCI();
 	SCI_TX_PORT = 0b0;
-    Set_IdelMode();
+
+	g_SCI.STAT.TxEF = 1;  // 发送缓冲器空
+	g_SCI.STAT.RxFF = 0;  // 接收缓冲器空
+	g_SCI.TBCNT = 0;  // 清零发送位计数器
+	g_SCI.RBCNT = 0;  // 清零接收位计数器
+	g_SciByteCnt = 0;
+
+	SCI_SetTxMode();
+    
 }
 
-void Timer1_IrqEnable(void)
+void SCI_TimerIrqEnable(void)
 {
     PIR1bits.TMR1IF = 0b0;
     PIE1bits.TMR1IE = 0b1;
 }
 
-void Timer1_IrqDisable(void)
+void SCI_TimerIrqDisable(void)
 {
     PIR1bits.TMR1IF = 0b0;
     PIE1bits.TMR1IE = 0b0;
@@ -38,31 +49,35 @@ void Timer1_IrqDisable(void)
 
 void SCI_SetClk(uint16_t val)
 {
-	Disable_Timer1();
+	SCI_TimerIrqDisable();
     if(100 == val)
     {
         TMR1 = (uint16_t)64762;
         //TMR1H = 0xFC;
         //TMR1L = 0xFA;
     }
-    else if(200 == val)
+    else 
     {
         TMR1 = (uint16_t)63962;
         //TMR1H = 0xF9;
         //TMR1L = 0xDA;
     } 
-    else if(400 == val)
-    {
-        TMR1 = (uint16_t)62340;// 400uS
-    }
-    else
-    {
-        TMR1 = (uint16_t)60740;// 600uS
-    }
-    Enable_Timer1();
+    SCI_TimerIrqEnable();
 }
 
-void Set_IdelMode(void)
+void SCI_WriteByte(uint8_t data)
+{
+	g_SCI.DR = data;
+	g_SCI.STAT.TxEF = 0;
+	g_SCI.TBCNT = 8;
+}
+
+uint8_t SCI_ReadByte(void)
+{
+	return g_SCI.DR;
+}
+
+void SCI_SetIdelMode(void)
 {
 	INTCONbits.INT0IF = 0b0;
 	INTCONbits.INT0IE = 0b0; // 暂时禁止外部中断0
@@ -70,15 +85,15 @@ void Set_IdelMode(void)
 	Timer1_IrqDisable();	 // 禁止Timer1中断
 }
 
-void Set_TxMode(void)
+void SCI_SetTxMode(void)
 {
 	INTCONbits.INT0IF = 0b0;
 	INTCONbits.INT0IE = 0b0; // 暂时禁止外部中断0
 }
 
-void Set_RxMod(void)
+void SCI_SetRxMode(void)
 {
-    Timer1_IrqDisable();
+    SCI_TimerIrqDisable();
     SCI_TX_PORT = 0b0;
     
 	INTCON2bits.INTEDG0 = 0b1;  // 设置上升沿触发中断
@@ -86,23 +101,26 @@ void Set_RxMod(void)
 	INTCONbits.INT0IE = 0b1;  // 允许外部中断
 }
 
-void Sci_StartSend(void)
+void SCI_StartSend(void)
 {
-    SCI_TX_PORT = 0b0;
-    
-    SCI_SetClk(600);
-    Timer1_IrqEnable();
+	g_SCI.DR = 0x01;
+	g_SCI.STAT.TxEF = 0;
+	g_SCI.TBCNT = 1;
+	
+    SCI_TX_PORT = 0b1;
+    SCI_SetClk(200);
+    SCI_TimerIrqEnable();
 }
 
-
-void Sci_SendByte(void)
+void SCI_SendByte(void)
 {
 	static BOOL flag = FALSE;
 
+	if(g_SCI.STAT.TxEF)
+		return;
 	if(FALSE == flag)
 	{
-        SCI_TX_PORT = 0b1;
-		if(0x01 == (g_SCIData.DR&0x01))
+		if(g_SCI.DR&0x01)
 		{
 			SCI_SetClk(200);
 		}
@@ -110,22 +128,21 @@ void Sci_SendByte(void)
 		{
 			SCI_SetClk(100);
 		}
+		SCI_TX_PORT = 1;
+
+		g_SCI.DR >>= 1;
+		g_SCI.TBCNT--;
 		flag = TRUE;
 	}
 	else
 	{
         SCI_TX_PORT = 0b0;
 		SCI_SetClk(100);
-		flag = 0;
-        g_SCIData.TBCNT ++;
-        g_SCIData.DR >>= 1;
-	}
-
-	if(g_SCIData.TBCNT >= 16)
-	{
-        g_SCIData.TBCNT = 0;
-        flag = FALSE;
-		Set_RxMod();
+		flag = FALSE;
+        if(0 == g_SCI.TBCNT)
+        {
+			g_SCI.STAT.TxEF = 1;
+        }
 	}
 }
 
@@ -133,197 +150,112 @@ void Sci_SendByte(void)
 /*
  _______|----|_|-|--|....400uS高是开始
  */
-void Sci_RcvBits(void)
+void SCI_RcvBits(void)
 {
     uint16_t sciTimeCnt = 0;
-    static uint8_t rxBitsCnt = 0x00;
-	static BOOL b_getHeader = FALSE;
     
     if(0b1 == INTCON2bits.INTEDG0)
     {
         TMR1 = 0x0;
         INTCON2bits.INTEDG0 = 0b0;  // 设置下一次由下降沿触发中断
     }
-    else
+    else // 如果是上升沿 __|-
     {
         sciTimeCnt = TMR1;
-        
         INTCON2bits.INTEDG0 = 1;  // 设置下一次由上升沿触发中断
+        g_SCI.DR >>= 1;
         
-        if((sciTimeCnt > (uint16_t)2800) && (sciTimeCnt < (uint16_t)3600))
+        if(sciTimeCnt > (uint16_t)1200) //150uS - 250uS
         {
-            rxBitsCnt = 0;
-            g_sciRx.Data.allData = 0;
-			b_getHeader = TRUE;
-            return;
+            g_SCI.DR |= 0x80;
         }
-		if(!b_getHeader) //只有头部来触发读取数据操作
-			return;
-        
-        if((sciTimeCnt > (uint16_t)1200) && (sciTimeCnt < (uint16_t)2000)) //150uS - 250uS
+
+        if(++g_SCI.RBCNT > 7)
         {
-            g_sciRx.Data.allData |= ((uint32_t)0x01<<rxBitsCnt);
-        }
-        
-        if(++rxBitsCnt > 23) 
-        {
-            rxBitsCnt = 0;
-			Set_IdelMode();// 接收完一帧数据后进入空闲模式
-			b_getHeader = FALSE; // 头部标志位复位
-            g_canSend = TRUE;
+			g_SCI.STAT.RxFF = 0b1;
+			g_SCI.RBCNT = 0;
         }
     }
 }
 
+//============================================================================
+// Function    : sciSendMsg
+// Description : message发送，该函数主要功能为：将缓冲区中的数据逐位从通信端口
+//               移出
+// Parameters  : none
+// Returns     : none
+//============================================================================
 
-// 数组array存在val则返回val的小标，不存在返回-1
-int8_t ScanValIsIn(uint8_t val,uint8_t array[],uint8_t len)
+void SCI_SendMsg(void)
 {
-	int8_t i = 0;
-	int8_t pos = -1;
-	
-	for(i=0;i<len;i++)
+	SCI_SendByte();
+	if(g_SCI.STAT.TxEF)
 	{
-		if(val == array[i])
+		if(g_SciByteCnt < MESSAGE_SEND_LEN)
 		{
-			pos = i;
-			break;
-		}
-	}
-
-	return pos;
-}
-
-// 在数组array内找到空位置，找不到返回-1
-int8_t FindPos(uint8_t array[],uint8_t len)
-{
-	int8_t pos = -1;
-	for(int8_t i=0;i<len;i++)
-	{
-		if(array[i] == 0x00)
-		{
-			pos = i;
-			break;
-		}
-	}
-	
-	return pos;
-}
-
-void TskHandleSciBuf(void)
-{
-	static uint32_t lastSendData = 0x00;
-	if(g_canSend)
-    {
-    #if 0
-		if((g_sciRx.Data.cmd + g_sciRx.Data.data) != g_sciRx.Data.crc) // 接收的数据有误
-		{
-			Set_RxMod();//继续接收
-			return;
-		}
-	#endif
-
-		if(SERINUM == g_sciRx.Data.cmd)
-			g_battSeriNum = g_sciRx.Data.data;
-		else if(PALNUM == g_sciRx.Data.cmd)
-			g_battPatallNum = g_sciRx.Data.data;
-		else if(BATTEMP == g_sciRx.Data.cmd)
-			g_battTemVal = g_sciRx.Data.data;
-		else if(YEAR == g_sciRx.Data.cmd)
-			g_year = g_sciRx.Data.data;
-		else if(MONTH == g_sciRx.Data.cmd)
-			g_month = g_sciRx.Data.data;
-		else if(DATE == g_sciRx.Data.cmd)
-			g_date = g_sciRx.Data.data;
-		else if(CYCLE == g_sciRx.Data.cmd)
-		{
-			g_cycle = g_sciRx.Data.crc;
-			g_cycle <<= 8;
-			g_cycle += g_sciRx.Data.data;
-		}
-		else if(MAX == g_sciRx.Data.cmd)
-		{
-			static uint16_t vMax = 0; 
-			vMax = g_sciRx.Data.crc;
-			vMax <<= 8;
-			vMax += g_sciRx.Data.data;
-			if(g_historyHight < vMax)
-			{
-				g_historyHight = vMax;
-			}
-		}
-		else if(MIN == g_sciRx.Data.cmd)
-		{
-			static uint16_t vMin1 = 0; 
-			static uint16_t vMin2 = 0xFFFF;
-			static uint32_t s_lastTick;
-
-			if((g_SysTickMs - s_lastTick) > 2000)
-			{
-				vMin2 = 0xFFFF;
-			}
-			
-			vMin1 = g_sciRx.Data.crc;
-			vMin1 <<= 8;
-			vMin1 += g_sciRx.Data.data;
-			
-			if(vMin2 > vMin1)
-			{
-				vMin2 = vMin1;	
-			}
-			g_historyLow = vMin2;
-			s_lastTick = g_SysTickMs;
+			SCI_WriteByte(g_SciSendBuf[g_SciByteCnt++]);
 		}
 		else
-        {
-            if((0x00 != g_sciRx.Data.cmd))
-            {
-            	//将g_sciRx.Data.cmd放入电池状态数组
-            	if((int8_t)-1 == ScanValIsIn(g_sciRx.Data.cmd,g_battState,4))
-            	{
-					int8_t pos = FindPos(g_battState,4);
-					if(pos != (int8_t)-1)
-						g_battState[pos] = g_sciRx.Data.cmd;
-            	}
-            }
-        }
-
-        g_sciTx.Data.allData = lastSendData;
-        if((CMD_SCI == g_testCmd) || (CMD_RESET == g_testCmd)) // 使电池包复位
-        {
-            g_sciTx.Data.allData = 0xE11E;
-            g_battRestOk = TRUE;
-        }
-        // 电池包充电
-        else if((CMD_SeriNum == g_testCmd) || (CMD_PatalNum == g_testCmd) 
-        		 || (CMD_BattTemp == g_testCmd))
-        {
-            g_sciTx.Data.allData = 0xE41B;
-        }
-        else if(CMD_EnDischg == g_testCmd)
-        {
-			g_sciTx.Data.allData = 0xD22D;
-        }
-        else if((CMD_HistoryCycle == g_testCmd) || (CMD_HistoryDate == g_testCmd)
-        		|| (CMD_HistoryHigh == g_testCmd)  || (CMD_HistoryLow == g_testCmd) 
-        		|| (CMD_HistoryMonth == g_testCmd) || (CMD_HistoryYear == g_testCmd))
-        {
-			g_sciTx.Data.allData = 0x02FD;
-        }
-        
-        if(0x00 != g_sciTx.Data.allData)
-    	{
-        	Set_TxMode();
-        	Sci_StartSend();
-        }
-        
-        lastSendData = g_sciTx.Data.allData;
-        // 一个测试周期结束
-		if((CMD_RESET == g_testCmd) || (CMD_DetectApp == g_testCmd))
 		{
-			lastSendData = 0x00;
+			SCI_TimerIrqDisable();  // 缓冲区数据全部发送完毕，关闭定时器中断
+			SCI_SetRxMode();  		// 设置通信端口为接收模式
+			g_SciByteCnt = 0;
 		}
-    }
+	}
+	
+}
+
+
+//============================================================================
+// Function    : sciRcvMsg
+// Description : message发送，该函数主要功能为：将缓冲区中的数据逐位从通信端口
+//               移出
+// Parameters  : none
+// Returns     : none
+//============================================================================
+void SCI_RcvMsg(void)
+{
+   SCI_RcvBits();
+
+   if (g_SCI.STAT.RxFF)
+   {      
+      g_SciRcvBuf[g_SciByteCnt++] = SCI_ReadByte();
+      g_SCI.STAT.RxFF = 0;
+
+      if (g_SciByteCnt >= MESSAGE_RECEIVE_LEN)
+      {
+         g_SciRxBufFull = 1;
+         SCI_SetTxMode();  // 设置通信端口为发送模式
+         g_SciByteCnt = 0;
+      }
+   }
+}
+
+
+//============================================================================
+// Function    : sciIsrHandle
+// Description : SCI收发中断函数，该函数在中断中调用。
+// Parameters  : none
+// Returns     : none
+//============================================================================
+void SCI_IsrHandle(void)
+{
+	if (g_SCI.STAT.TxRx)
+	{
+		if (PIR1bits.TMR1IF)
+		{
+			PIR1bits.TMR1IF = 0;
+			SCI_SendMsg();
+		}
+	}
+	else
+	{
+		if (INTCONbits.INT0IF)
+		{
+			INTCONbits.INT0IF = 0;
+			SCI_RcvMsg();
+		}
+	}
 }
 
 

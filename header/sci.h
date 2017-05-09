@@ -12,20 +12,14 @@
 extern "C" {
 #endif
 
-#define SCI_RXBUF_LEN	2
-
+#define  MESSAGE_SEND_LEN                  3
+#define  MESSAGE_RECEIVE_LEN               2
 
 #define SCI_TX_PORT     LATDbits.LATD3
 #define SCI_RX_PORT     LATBbits.LATB0
 #define EnableSCI()		LATDbits.LATD1 = 0b1
 #define DisableSCI()	LATDbits.LATD1 = 0b0
 
-typedef struct
-{
-	uint8_t cmd;
-	uint8_t data;
-	uint8_t crc;
-}SciRXTypedef;
     
 // 收发器结构体参数定义
 typedef struct
@@ -33,11 +27,10 @@ typedef struct
 	uint16_t 		DR;  				// SCI通信发送寄存器
 	uint8_t 		TBCNT;  			// 发送位计数器
 	uint8_t 		RBCNT;  			// 接收位计数器
-	SciRXTypedef 	RxBuf[SCI_RXBUF_LEN];
+
 	union
 	{
 		uint8_t Byte;
-
 		struct 
 		{
 			unsigned TxEF :1;      // 发送缓冲器空，“1”有效
@@ -46,23 +39,31 @@ typedef struct
 			unsigned      :5; 
 		};
 	}STAT;
-
 }SciTypedef;
 
-extern SciTypedef g_SCIData;
+/* Valuable Definition */
+extern SciTypedef g_SCI;
+extern uint8_t g_SciSendBuf[MESSAGE_SEND_LEN];
+extern uint8_t g_SciRcvBuf[MESSAGE_RECEIVE_LEN];
+extern uint8_t g_SciByteCnt;
+extern uint8_t g_SciRxBufFull;
+
 
 void Sci_Init(void); 
-void Sci_StartSend(void);
-void Sci_SendByte(void);
-void Timer1_IrqEnable(void);
-void Timer1_IrqDisable(void);
 void SCI_SetClk(uint16_t val);
-void Set_TxMode(void);
-void Set_RxMod(void);
-void Set_IdelMode(void);
-void Sci_RcvBits(void);
-void TskHandleSciRxBuf(void);
-void TskHandleSciBuf(void);
+void SCI_WriteByte(uint8_t data);
+void SCI_TimerIrqEnable(void);
+void SCI_TimerIrqDisable(void);
+uint8_t SCI_ReadByte(void);
+void SCI_SetIdelMode(void);
+void SCI_SetTxMode(void);
+void SCI_SetRxMode(void);
+void SCI_StartSend(void);
+void SCI_SendByte(void);
+void SCI_RcvBits(void);
+void SCI_SendMsg(void);
+void SCI_RcvMsg(void);
+void SCI_IsrHandle(void);
 
 
 
