@@ -13,7 +13,26 @@ void ISR_Init(void)
 //interrupt
 void interrupt ISR_High_Handler(void) 
 {
-    SCI_IsrHandle();
+	if(g_startUp)
+	{
+		INTCONbits.GIE   = 0b0;
+		//------------------------------ 1ms timer --------------------------------
+		if (PIR1bits.TMR1IF)
+		{      
+	        TMR1H = TMR1H_INIT;
+	        TMR1L = TMR1L_INIT;
+	        PIR1bits.TMR1IF = 0;
+			
+	        g_SysTickMs++;
+		}
+		
+		INTCONbits.GIE   = 0b1;
+	}
+	else
+	{
+		SCI_IsrHandle();
+	}
+    
 }
 
 void DelayMs(uint16_t nTime)

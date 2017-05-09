@@ -212,6 +212,9 @@ const  VoltWarnClsDef PackUVThrDefault = {600,570,0}; // 0.1V
 extern uint16_t g_CCS_MaxVoltage;		// 控制充电器的最大电压 0.1V
 extern uint16_t g_CCS_MaxCurrent;		// 控制充电器的最大电流 0.1A
 
+extern BOOL g_startUp;
+
+
 
 //-------------------------- 常用宏定义 --------------------------
 

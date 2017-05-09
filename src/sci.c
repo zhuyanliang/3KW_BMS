@@ -98,7 +98,7 @@ void SCI_SetRxMode(void)
     
 	INTCON2bits.INTEDG0 = 0b1;  // 设置上升沿触发中断
 	INTCONbits.INT0IF = 0b0;
-	INTCONbits.INT0IE = 0b1;  // 允许外部中断
+	INTCONbits.INT0IE = 0b1;  	// 允许外部中断
 }
 
 void SCI_StartSend(void)

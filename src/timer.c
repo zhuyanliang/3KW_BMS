@@ -1,6 +1,6 @@
 #include "include.h"
 
-//#define USETIMER1
+#define USETIMER1
 #define USETIMER2
 #define USETIMER4
 
@@ -37,15 +37,15 @@ void Timer_Init(void)
 	T1CONbits.SOSCEN 		= 0b0;	// 禁止 SOSC，它不可用于 Timer1
 	T1CONbits.NOT_T1SYNC 	= 0b0;	// 同步外部时钟输入
 	T1CONbits.RD16			= 0b1;	// 通过一次16位操作进行寄存器读写
-	T1CONbits.TMR1ON		= 0b0;	// 失能TIMER1
+	T1CONbits.TMR1ON		= 0b1;	// 使能TIMER1
 
-	TMR1H = 0x00;
-	TMR1L = 0x00;
+	TMR1H = TMR1H_INIT;
+	TMR1L = TMR1L_INIT;
 	
 
 	PIR1bits.TMR1IF	= 0b0;	// 清除外设中断请求寄存器定时器1的中断标志位
 	IPR1bits.TMR1IP	= 0b1;	// 设置定时器1的中断源为高优先级
-	PIE1bits.TMR1IE = 0b0;	// 允许定时器1的中断
+	PIE1bits.TMR1IE = 0b1;	// 允许定时器1的中断
 #endif
 
 #ifdef USETIMER2

@@ -173,7 +173,7 @@ void LTC6811_Initialize(void)
 	g_Ltc6811CfgReg[0].cfgr[0] = 0x02;
     g_Ltc6811CfgReg[1].cfgr[0] = 0x02;
 
-	//DelayMs(50);//延时200ms等待ltc6811电源稳定
+	DelayMs(50);//延时200ms等待ltc6811电源稳定
 	LTC6811_WriteCfgReg();
 }
 
