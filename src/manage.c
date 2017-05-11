@@ -730,7 +730,7 @@ void TskAfeMgt(void)
 		}
 		else
 		{
-			AfeState = AFE_VOLT_CNVT;
+			AfeState = AFE_VOLT_DETECT;
 
 			/* mcuÓëltc6803 spiÍ¨ÐÅ´íÎó¼ì²â */
 			if (ComErrCnt)
@@ -747,6 +747,7 @@ void TskAfeMgt(void)
 				}
 			}
 		}
+		Cell_VoltConvert(g_ArrayLtc6811Unit.cellVolt);
 		break;
 	case AFE_VOLT_DETECT:
 		DetectMaxMinAvgCellVolt();
@@ -757,14 +758,38 @@ void TskAfeMgt(void)
 		DetectPackUv();    
 		AfeState = AFE_TEMP_CNVT;//AFE_BALANCE;
 		break;
-
 	case AFE_TEMP_CNVT:
 		LTC6811_Adax(MD_NORMAL,AUX_CH_ALL);  	//Æô¶¯ÎÂ¶È×ª»»
 		AfeState = AFE_READ_TEMP;  				//×´Ì¬ÇÐ»»
 		break;
 
 	case AFE_READ_TEMP:
-        LTC6811_ReadAux(0,g_ArrayLtc6811Unit.temperature);
+        if(!LTC6811_ReadAux(0,g_ArrayLtc6811Unit.temperature))
+        {
+			AfeState = AFE_BALANCE;
+			g_SystemError.ltc_com = 0;
+			ComErrCnt = 5;
+        }
+        else
+        {
+			AfeState = AFE_TEMP_CNVT;
+
+			/* mcuÓëltc6803 spiÍ¨ÐÅ´íÎó¼ì²â */
+			if (ComErrCnt)
+			{
+				ComErrCnt--;
+			}
+			else 
+			{
+				g_SystemError.ltc_com = 1;
+				g_FaultRecord.ltc_com ++;
+				if (g_ProtectDelayCnt > RELAY_ACTION_DELAY_1S)
+				{
+					g_ProtectDelayCnt = RELAY_ACTION_DELAY_1S;
+				}
+			}
+        }
+        GPIO_VoltConvert(g_ArrayLtc6811Unit.temperature);
         AfeState = AFE_BALANCE;					// AFE_CAL_TEMP;
 		break;
 		
@@ -813,24 +838,18 @@ void TskBatteryModeMgt(void)
 		}
 		else
 		{
-			if(GetChargeState()) // ³äµçÆ÷½ÓÈë
+			if(GetChargeState() && !Button) // ³äµçÆ÷½ÓÈë
 			{
-				g_BatteryMode = BEFORECHARGE;
-                g_BeforeChargeCnt = 0;
+				g_BatteryMode = CHARGE;
 			}
-            else
+            else if(!GetChargeState() && Button)
 			{
-				g_BatteryMode = PRECHARGE;
-				g_PrechargeTimer =0;  
+				g_BatteryMode = DISCHARGE; 
 			}
-		}
-		break;
-
-	case PRECHARGE:  //Ô¤³äµç×´Ì¬
-		if(++g_PrechargeTimer > PRE_CHARGE_TIME)
-		{
-			g_BatteryMode = DISCHARGE;
-			g_PrechargeTimer = 0;
+			else
+			{
+				g_BatteryMode = PROTECTION;
+			}
 		}
 		break;
 
@@ -851,13 +870,6 @@ void TskBatteryModeMgt(void)
 		}
 		break;
         
-    case BEFORECHARGE:
-        if(++g_BeforeChargeCnt > BEFORE_CHARGE_TIME)
-        {
-            g_BatteryMode = CHARGE;
-            g_BeforeChargeCnt = 0;
-        }
-        break;
 	case CHARGE:  //³äµç×´Ì¬  
 			if ( DetectSecondWarning() 
 				|| (g_SystemError.all & 0x87))
@@ -886,7 +898,7 @@ void TskBatteryModeMgt(void)
 				if(DetectPackChargeFinish())
 					g_BatteryMode = PROTECTION;
 				else	
-					g_BatteryMode = BEFORECHARGE;
+					g_BatteryMode = IDLE;
 			}
 			else
 			{
@@ -894,7 +906,6 @@ void TskBatteryModeMgt(void)
 					g_BatteryMode = IDLE;
 			}
 		}
-		
 		break;
 	default:  
 		break;

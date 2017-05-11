@@ -81,21 +81,23 @@ void SCI_SetIdelMode(void)
 {
 	INTCONbits.INT0IF = 0b0;
 	INTCONbits.INT0IE = 0b0; // 暂时禁止外部中断0
-	
-	Timer1_IrqDisable();	 // 禁止Timer1中断
+
+	SCI_TimerIrqDisable();	 // 禁止Timer1中断
 }
 
 void SCI_SetTxMode(void)
 {
 	INTCONbits.INT0IF = 0b0;
+	g_SCI.STAT.TxRx = 0b1;
 	INTCONbits.INT0IE = 0b0; // 暂时禁止外部中断0
 }
 
 void SCI_SetRxMode(void)
 {
+	g_SCI.STAT.TxRx = 0b0;
+	g_SCI.RBCNT = 0;
     SCI_TimerIrqDisable();
     SCI_TX_PORT = 0b0;
-    
 	INTCON2bits.INTEDG0 = 0b1;  // 设置上升沿触发中断
 	INTCONbits.INT0IF = 0b0;
 	INTCONbits.INT0IE = 0b1;  	// 允许外部中断
@@ -256,6 +258,7 @@ void SCI_IsrHandle(void)
 			SCI_RcvMsg();
 		}
 	}
+    
 }
 
 

@@ -566,26 +566,21 @@ void LTC6811_Rdaux_Reg(uint8_t reg,uint8_t *data)
 	uint8_t cmd[4];
 	uint16_t cmd_pec;
 
-	if (1 == reg)			//Read back auxiliary group A
+	if(reg == 1)			//Read back auxiliary group A
 	{
 		cmd[1] = 0x0C;
 		cmd[0] = 0x00;
 	}
-	else if(2 == reg)		//Read back auxiliary group B 
+	if(reg == 2)		//Read back auxiliary group B 
 	{
 		cmd[1] = 0x0e;
 		cmd[0] = 0x00;
 	} 
-	else					//Read back auxiliary group A
-	{
-		cmd[1] = 0x0C;		
-		cmd[0] = 0x00;
-	}
 
 	cmd_pec = Pec15_Calc(2, cmd);
 	cmd[2] = (uint8_t)(cmd_pec >> 8);
 	cmd[3] = (uint8_t)(cmd_pec);
-	//4
+
 	Set_Ltc6811(0b0);
 	SPI_Write_Read(cmd,4,data,(REG_LEN*ModuleAmount));
 	Set_Ltc6811(0b1);
@@ -646,6 +641,29 @@ void LTC6811_ClrAux(void)
 	Set_Ltc6811(0b0);
 	SPI_Write_Read(cmd,4,0,0);
 	Set_Ltc6811(0b1);
+}
+
+
+void Cell_VoltConvert(uint16_t dat[ModuleAmount][12])
+{
+	for(uint8_t i=0;i<ModuleAmount;i++)
+	{
+		for(uint8_t j=0;j<10;j++)
+		{
+			dat[i][j] /= 10;
+		}
+	}
+}
+
+void GPIO_VoltConvert(uint16_t dat[ModuleAmount][6])
+{
+	for(uint8_t i=0;i<ModuleAmount;i++)
+	{
+		for(uint8_t j=0;j<5;j++)
+		{
+			dat[i][j] /= 10;
+		}
+	}
 }
 
 

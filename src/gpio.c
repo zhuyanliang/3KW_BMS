@@ -53,6 +53,30 @@ void TaskLedMgt(void)
 	
 }
 
+void TskBeepMgt(void)
+{
+	static uint8_t timeStamp = 0;
+
+	if(g_BatteryMode != PROTECTION)
+	{
+		timeStamp = 0;
+		BeepOff();
+		return;
+	}
+	timeStamp++;
+	if(timeStamp <= 50)
+	{
+		BeepOn();
+	}
+	else if(timeStamp <= 100)
+	{
+		BeepOff();
+	}
+	else
+	{
+		timeStamp = 0;
+	}
+}
 
 
 

@@ -180,7 +180,6 @@ extern volatile SysWarningDef 	g_SystemWarning;	//系统报警
 extern volatile SysErrDef 		g_SystemError;
 
 extern volatile BatteryModeTypedef 		g_BatteryMode; 		// 电池包工作模式
-extern SubModeTypedef 			g_BatterySubMode;
 
 extern uint16_t 				g_ProtectDelayCnt;	// 保护延时计数 
 extern uint16_t 				g_PrechargeTimer;	// 预充时间

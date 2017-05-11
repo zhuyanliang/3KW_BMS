@@ -129,9 +129,10 @@ static void ShutDown_1MsTick(void)
 {
 	TMR1H = 0x00;
 	TMR1L = 0x00;
-	
+	INTCONbits.GIE   = 0b0;
 	PIR1bits.TMR1IF	= 0b0;	// 清除外设中断请求寄存器定时器1的中断标志位
 	PIE1bits.TMR1IE = 0b0;	// 不允许定时器1的中断
+	INTCONbits.GIE   = 0b1;
 }
 
 /*
@@ -147,8 +148,8 @@ void main(void)
 	//EnableWatchDog();
 	TskLcdShow();
 
-	g_startUp = FALSE;
 	ShutDown_1MsTick();
+	g_startUp = FALSE;
 
     for(;;)
     {
@@ -158,7 +159,7 @@ void main(void)
 		Soc_AhAcc();
 		Soh_ChargeAhAcc();
 		ClrWdt();
-		DetectCharger();
+		//DetectCharger();
 		TskBatteryModeMgt();
 		TskCanRecMsgToBuf();
 
@@ -189,6 +190,7 @@ void main(void)
 		case 4:
             TskFaultStoreMgt(); 
 			TaskLedMgt();
+			//TskBeepMgt();
 			LCD_DisplayDriver();
 			taskList = 0;
 			break;

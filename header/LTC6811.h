@@ -160,5 +160,7 @@ void 		LTC6811_Rdaux_Reg(uint8_t reg,uint8_t *data);
 void 		LTC6811_ClrCell(void);
 void 		LTC6811_ClrAux(void);
 uint16_t 	Pec15_Calc(uint8_t len, uint8_t *data);
+void 		Cell_VoltConvert(uint16_t dat[ModuleAmount][12]);
+void 		GPIO_VoltConvert(uint16_t dat[ModuleAmount][6]);
 
 #endif

@@ -39,10 +39,13 @@ extern "C" {
 #define ChargeDisEn()	Charge = 0b0
 #define DischargeEn()	Discharge = 0b1
 #define DischargeDisEn() Discharge = 0b0
- 
+
+#define BeepTrig()		Beep = ~Beep 
 
 void Gpio_Init(void);
 void TaskLedMgt(void);
+void TskBeepMgt(void);
+
 
 #ifdef	__cplusplus
 }

@@ -894,8 +894,7 @@ void DetectRunkey(void)
 //============================================================================
 uint8_t GetChargeState(void)
 {
-	return (keyChgrState & 0x01);
-    //return (!PORTDbits.RD7);
+	return (g_ExternalDevice==CHARGER);
 }
 
 #if 0

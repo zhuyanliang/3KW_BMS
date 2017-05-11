@@ -318,12 +318,12 @@ void CAN_CellVoltage1ToTxBuf(void)
 	g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].IDE = CAN_ID_EXT;
 	g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].RTR = CAN_RTR_DATA;
 	g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].DLC = 0x08;
-/*
-	*(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[0] = g_ArrayLtc6803Unit[0].CellVolt[0];
-	*(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[2] = g_ArrayLtc6803Unit[0].CellVolt[1];
-	*(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[4] = g_ArrayLtc6803Unit[0].CellVolt[2];
-	*(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[6] = g_ArrayLtc6803Unit[0].CellVolt[3];
-*/
+
+	*(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[0] = g_ArrayLtc6811Unit.cellVolt[0][0];
+	*(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[2] = g_ArrayLtc6811Unit.cellVolt[0][1];
+	*(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[4] = g_ArrayLtc6811Unit.cellVolt[0][2];
+	*(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[6] = g_ArrayLtc6811Unit.cellVolt[0][3];
+
 	if (++g_CanMsgBuf.TxBuf_Wptr >= CAN_BUF_DEEP)
 	{
 		g_CanMsgBuf.TxBuf_Wptr = 0;
@@ -342,12 +342,12 @@ void CAN_CellVoltage2ToTxBuf(void)
    g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].IDE = CAN_ID_EXT;
    g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].RTR = CAN_RTR_DATA;
    g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].DLC = 0x08;
-/*
-   *(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[0] = g_ArrayLtc6803Unit[0].CellVolt[4];
-   *(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[2] = g_ArrayLtc6803Unit[0].CellVolt[5];
-   *(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[4] = g_ArrayLtc6803Unit[0].CellVolt[6];
-   *(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[6] = g_ArrayLtc6803Unit[0].CellVolt[7];
-*/
+
+   *(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[0] = g_ArrayLtc6811Unit.cellVolt[0][4];
+   *(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[2] = g_ArrayLtc6811Unit.cellVolt[0][5];
+   *(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[4] = g_ArrayLtc6811Unit.cellVolt[0][6];
+   *(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[6] = g_ArrayLtc6811Unit.cellVolt[0][7];
+
    if (++g_CanMsgBuf.TxBuf_Wptr >= CAN_BUF_DEEP)
    {
       g_CanMsgBuf.TxBuf_Wptr = 0;
@@ -366,12 +366,12 @@ void CAN_CellVoltage3ToTxBuf(void)
 	g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].IDE = CAN_ID_EXT;
 	g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].RTR = CAN_RTR_DATA;
 	g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].DLC = 0x08;
-/*
-	*(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[0] = g_ArrayLtc6803Unit[0].CellVolt[8];
-	*(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[2] = g_ArrayLtc6803Unit[0].CellVolt[9];
-	*(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[4] = g_ArrayLtc6803Unit[1].CellVolt[0];
-	*(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[6] = g_ArrayLtc6803Unit[1].CellVolt[1];
-*/
+
+	*(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[0] = g_ArrayLtc6811Unit.cellVolt[0][8];
+	*(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[2] = g_ArrayLtc6811Unit.cellVolt[0][9];
+	*(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[4] = g_ArrayLtc6811Unit.cellVolt[1][0];
+	*(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[6] = g_ArrayLtc6811Unit.cellVolt[1][1];
+
 	if (++g_CanMsgBuf.TxBuf_Wptr >= CAN_BUF_DEEP)
 	{
 		g_CanMsgBuf.TxBuf_Wptr = 0;
@@ -390,12 +390,12 @@ void CAN_CellVoltage4ToTxBuf(void)
    g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].IDE = CAN_ID_EXT;
    g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].RTR = CAN_RTR_DATA;
    g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].DLC = 0x08;
-/*
-   *(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[0] = g_ArrayLtc6803Unit[1].CellVolt[2];
-   *(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[2] = g_ArrayLtc6803Unit[1].CellVolt[3];
-   *(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[4] = g_ArrayLtc6803Unit[1].CellVolt[4];
-   *(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[6] = g_ArrayLtc6803Unit[1].CellVolt[5];
-	*/
+
+   *(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[0] = g_ArrayLtc6811Unit.cellVolt[1][2];
+   *(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[2] = g_ArrayLtc6811Unit.cellVolt[1][3];
+   *(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[4] = g_ArrayLtc6811Unit.cellVolt[1][4];
+   *(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[6] = g_ArrayLtc6811Unit.cellVolt[1][5];
+	
    if (++g_CanMsgBuf.TxBuf_Wptr >= CAN_BUF_DEEP)
    {
       g_CanMsgBuf.TxBuf_Wptr = 0;
@@ -414,12 +414,12 @@ void CAN_CellVoltage5ToTxBuf(void)
 	g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].IDE = CAN_ID_EXT;
 	g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].RTR = CAN_RTR_DATA;
 	g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].DLC = 0x08;
-/*
-	*(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[0] = g_ArrayLtc6803Unit[1].CellVolt[6];
-	*(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[2] = g_ArrayLtc6803Unit[1].CellVolt[7];
-	*(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[4] = g_ArrayLtc6803Unit[1].CellVolt[8];
-	*(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[6] = g_ArrayLtc6803Unit[1].CellVolt[9];
-*/
+
+	*(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[0] = g_ArrayLtc6811Unit.cellVolt[1][6];
+	*(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[2] = g_ArrayLtc6811Unit.cellVolt[1][7];
+	*(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[4] = g_ArrayLtc6811Unit.cellVolt[1][8];
+	*(uint16_t*)&g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[6] = g_ArrayLtc6811Unit.cellVolt[1][9];
+
 	if (++g_CanMsgBuf.TxBuf_Wptr >= CAN_BUF_DEEP)
 	{
 		g_CanMsgBuf.TxBuf_Wptr = 0;
@@ -443,10 +443,10 @@ void CAN_CellTempToTxBuf(void)
 	g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[1] = g_BatteryParameter.CellTemp[1];
 	g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[2] = g_BatteryParameter.CellTemp[2];
 	g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[3] = g_BatteryParameter.CellTemp[3];
-	g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[4] = 0x00;
-	g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[5] = 0x00;
-	g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[6] = 0x00;
-	g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[7] = 0x00;
+	g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[4] = g_BatteryParameter.CellTemp[4];
+	g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[5] = g_BatteryParameter.CellTemp[5];
+	g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[6] = g_BatteryParameter.CellTemp[6];
+	g_CanMsgBuf.TxBuf[g_CanMsgBuf.TxBuf_Wptr].Data[7] = g_BatteryParameter.CellTemp[7];
 
 
 	if (++g_CanMsgBuf.TxBuf_Wptr >= CAN_BUF_DEEP)
