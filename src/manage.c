@@ -682,11 +682,69 @@ void TskFaultStoreMgt(void)
 // Parameters  : none
 // Returns     : none
 //============================================================================
-void TskBlncMgt(void)
+static void AfeBlncMgt(void)
 {
-	
-}
+	static BOOL balFlg = FALSE;
+	static uint16_t timeStamp = 0;
+	uint8_t i, j;
 
+	if(g_BatteryMode != CHARGE)
+		return;
+	if (!balFlg)
+	{
+		if (g_SysTickMs - timeStamp > 5000)
+		{
+			g_Ltc6811CfgReg[0].cfgr[4] &= 0x00;
+			g_Ltc6811CfgReg[0].cfgr[5] &= 0xF0;
+
+			g_Ltc6811CfgReg[1].cfgr[4] &= 0x00;
+			g_Ltc6811CfgReg[1].cfgr[5] &= 0xF0;
+
+			if (g_BatteryParameter.CellVoltMin 
+				> CELL_BALANCE_OPEN_VOLT)
+			{
+				for(i=0; i<ModuleAmount; i++)
+				{
+					for(j=0;j<(CellsAmount/ModuleAmount);j++)
+					{
+						if(g_ArrayLtc6811Unit.cellVolt[i][j] - g_BatteryParameter.CellVoltMin 
+							> CELL_BALANCE_THRESHOLD)
+						{
+							if(j<8)
+								g_Ltc6811CfgReg[i].cfgr[4] |= ((uint8_t)0x01 << j);
+							else
+								g_Ltc6811CfgReg[i].cfgr[5] |= ((uint8_t)0x01 << (j-8));
+						}
+					}
+				}
+			}
+
+			LTC6811_WriteCfgReg();
+
+			balFlg = TRUE;
+			timeStamp = g_SysTickMs;
+		}
+	}
+	else
+	{
+		static uint8_t n = 0;
+		if(n++ < 3)
+		{
+			g_Ltc6811CfgReg[0].cfgr[4] &= 0x00;
+			g_Ltc6811CfgReg[0].cfgr[5] &= 0xF0;
+
+			g_Ltc6811CfgReg[1].cfgr[4] &= 0x00;
+			g_Ltc6811CfgReg[1].cfgr[5] &= 0xF0;
+
+			LTC6811_WriteCfgReg();			
+		}
+		else
+		{
+			balFlg = FALSE;
+			n = 0;
+		}
+	}
+}
 
 
 //============================================================================
@@ -698,9 +756,23 @@ void TskBlncMgt(void)
 //============================================================================
 void TskAfeMgt(void)
 {
+	static uint8_t s_cnt = 0;
     static uint32_t currentTime = 0x00;
 	static uint8_t ComErrCnt = 5;
 	static AfeStateTypedef AfeState = AFE_VOLT_CNVT;
+
+	if(s_cnt++ > 25)
+	{
+		s_cnt = 0;
+		g_Ltc6811CfgReg[0].cfgr[0] = 0x06;
+	    g_Ltc6811CfgReg[1].cfgr[0] = 0x06;
+
+		LTC6811_WriteCfgReg();
+	}
+	else
+	{
+		return;
+	}
         
 	switch (AfeState)
 	{
@@ -792,6 +864,7 @@ void TskAfeMgt(void)
 	case AFE_READ_STAT:
 		if(!LTC6811_ReadCellStat(0,g_ArrayLtc6811Unit.status))
 		{
+			g_BatteryParameter.voltage = (g_ArrayLtc6811Unit.status[0][0] + g_ArrayLtc6811Unit.status[1][0])/50; 
 			AfeState = AFE_BALANCE;
 		}
 		else
@@ -815,14 +888,19 @@ void TskAfeMgt(void)
 		}
         break;
 	case AFE_BALANCE:
-		TskBlncMgt();
+		AfeBlncMgt();
 		AfeState = AFE_VOLT_CNVT;
 		break;
 
 	default:
 		AfeState = AFE_VOLT_CNVT;
 		break;
-   }
+	}
+	
+	g_Ltc6811CfgReg[0].cfgr[0] = 0x04;
+    g_Ltc6811CfgReg[1].cfgr[0] = 0x04;
+
+	LTC6811_WriteCfgReg();
 }
 
 //----------------------------------------------------------------------------

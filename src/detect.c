@@ -815,7 +815,7 @@ void DetectMaxMinAvgCellVolt(void)
 
 	g_BatteryParameter.CellVoltMax = maxVolt;
 	g_BatteryParameter.CellVoltMin = minVolt;
-	g_BatteryParameter.voltage = sumVolt / 100;
+	//g_BatteryParameter.voltage = sumVolt / 100;
 	g_BatteryParameter.CellVoltAvg = (uint16_t)(sumVolt / CellsAmount);  
 }
 
@@ -852,39 +852,6 @@ void DetectCharger(void)
 	} 
 }
 
-#if 0
-//============================================================================
-// Function    £ºTskRunkeyCheck
-// Description £º¼ì²âµã»ðÔ¿³××´Ì¬
-// Parameters  £ºnone 
-// Returns     £º
-//============================================================================
-void DetectRunkey(void)
-{
-	if (PORTDbits.RD4) // keyrun½ÓÍ¨
-	{
-		if (++keyChkTimer > CHGR_CHK_CYCLE)
-		{
-			keyChgrState |= 0x02;
-			keyChkTimer = CHGR_CHK_CYCLE;
-		}
-	}
-	else
-	{
-		if (keyChgrState & 0x02)    
-		{
-			if( !keyChkTimer--)
-			{
-				keyChgrState &= ~0x02;
-			}
-		} 
-		else
-		{
-			keyChgrState &= ~0x02;
-		}
-	}       
-}
-#endif
 
 //============================================================================
 // Function    £ºGetChargeState
@@ -896,17 +863,4 @@ uint8_t GetChargeState(void)
 {
 	return (g_ExternalDevice==CHARGER);
 }
-
-#if 0
-//============================================================================
-// Function    £ºGetKeyrunState
-// Description £º»ñÈ¡µã»ðÔ¿³××´Ì¬
-// Parameters  £ºnone 
-// Returns     £º
-//============================================================================
-uint8_t GetKeyrunState(void)
-{
-   return (keyChgrState & 0x02);
-}
-#endif
 

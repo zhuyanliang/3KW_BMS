@@ -236,12 +236,11 @@ void LTC6811_WriteCfgReg(void)
 		cmd_index = cmd_index + 2;
 	}
 
-	
-	
 	Set_Ltc6811(0b0);
 	SPI_Write_Array(4+8*ModuleAmount,cmd);
 	Set_Ltc6811(0b1);
 }
+
 
 /*!*********************************************************************************************
   \brief Starts cell voltage conversion

@@ -21,7 +21,6 @@ void TskRelayMgt(void);
 void TskFaultStoreMgt(void);
 void TskCanMgt(void);
 void TskBatteryModeMgt(void);
-void TskBlncMgt(void);
 void TskAfeMgt(void);
 void TskAmbTempMgt(void);
 void TskSohMgt(void);
