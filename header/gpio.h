@@ -21,7 +21,7 @@ extern "C" {
 #define LedGreOn()			LedGre = 0b0
 #define LedGreTrig()        LedGre = ~LedGre
 
-#define Button		LATAbits.LATA1
+#define Button		PORTAbits.RA1//LATAbits.LATA1
 #define Beep		LATCbits.LATC0
 #define OCReset 	LATDbits.LATD4
 #define Power		LATDbits.LATD6
@@ -45,6 +45,7 @@ extern "C" {
 void Gpio_Init(void);
 void TaskLedMgt(void);
 void TskBeepMgt(void);
+void TskMOSFETMgt(void);
 
 
 #ifdef	__cplusplus

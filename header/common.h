@@ -166,7 +166,9 @@ typedef enum
 	AFE_READ_VOLT,
 	AFE_VOLT_DETECT,
 	AFE_TEMP_CNVT,
-	AFE_READ_TEMP, 
+	AFE_READ_TEMP,
+	AFE_STAT_CNVT,
+	AFE_READ_STAT,
 	AFE_BALANCE           
 }AfeStateTypedef;
 

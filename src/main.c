@@ -142,10 +142,11 @@ void main(void)
 {
 	static uint8_t taskList = 0;
 	static uint8_t cnt = 0;
+	static uint8_t testCnt = 0;
 	
     System_Init();    
 	
-	//EnableWatchDog();
+	EnableWatchDog();
 	TskLcdShow();
 
 	ShutDown_1MsTick();
@@ -159,10 +160,9 @@ void main(void)
 		Soc_AhAcc();
 		Soh_ChargeAhAcc();
 		ClrWdt();
-		//DetectCharger();
 		TskBatteryModeMgt();
 		TskCanRecMsgToBuf();
-
+		
 		if(16 == cnt++)
 		{
 			cnt = 0;
@@ -174,6 +174,7 @@ void main(void)
         {
 		case 0:
 			TskAfeMgt();
+			TskMOSFETMgt();
 			break;
 		case 1:	
 			TskSOCMgt();
@@ -236,6 +237,7 @@ void System_Init(void)
 	g_ProtectDelayCnt 		= 0xffff;
 	g_SystemWarning.all 	= 0;    // clear system warning flags
 
+	CurrentZeroOffsetAdjust();
 	SystemSelftest();  		// 系统自检
 	Soc_PowerOnAdjust();	// SOC 上电校准
 	

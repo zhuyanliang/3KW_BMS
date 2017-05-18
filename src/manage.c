@@ -296,31 +296,18 @@ void TskBatteryPra_Init(void)
 void TskCurrentMgt(void)
 {
 	uint8_t i;
-	static uint8_t curr_flg = 0;
-    static float temp; 
 
 	ADC_Convert(CHANNEL_CURRENT); 
 	
 	while(ADCON0bits.GO);  //等待转换完成，大约需要15us
-	//第一次启动时，一次性读取8个电流值
-	if (!curr_flg)
-	{
-		for ( i = 0; i < 8; i++ )
-		{
-			g_AdcConvertValue.Current[i] = ADC_GetCvtRaw();
-		} 
-		curr_flg = 1;    
-	}
-	else //以后每次更新一个电压值
-	{ 
-		g_AdcConvertValue.Current[g_AdcConvertValue.CurIndex++ & 0x07] = ADC_GetCvtRaw();
-	}
+
+	g_AdcConvertValue.Current[g_AdcConvertValue.CurIndex++ & 0x07] = ADC_GetCvtRaw();
+	
 	
 	g_AdcConvertValue.CurAvg = ADC_AverageCalculate(g_AdcConvertValue.Current);
 
 	//根据ADC采样值，结合电流采集器的特性，获取真实的电流值
-    temp = (float)(g_AdcConvertValue.CurAvg * 5)/4096 - 1.02;
-	g_BatteryParameter.current = temp*400;
+	g_BatteryParameter.current = (int16_t)(((int32_t)g_CurrentOffset - (int32_t)g_AdcConvertValue.CurAvg) * 625 / 256);
 
 	//检查电池包电流是否超过限定值
 	DetectPackOverCurrent();
@@ -711,6 +698,7 @@ void TskBlncMgt(void)
 //============================================================================
 void TskAfeMgt(void)
 {
+    static uint32_t currentTime = 0x00;
 	static uint8_t ComErrCnt = 5;
 	static AfeStateTypedef AfeState = AFE_VOLT_CNVT;
         
@@ -757,15 +745,20 @@ void TskAfeMgt(void)
 		DetectPackOv();
 		DetectPackUv();    
 		AfeState = AFE_TEMP_CNVT;//AFE_BALANCE;
+        currentTime = g_SysTickMs;
 		break;
 	case AFE_TEMP_CNVT:
-		LTC6811_Adax(MD_NORMAL,AUX_CH_ALL);  	//启动温度转换
-		AfeState = AFE_READ_TEMP;  				//状态切换
+		LTC6811_Adax(MD_NORMAL,DCP_ENABLED,AUX_CH_ALL);  	//启动温度转换
+		if((g_SysTickMs - currentTime) > 10)
+        { 				//状态切换
+        	AfeState = AFE_READ_TEMP; 
+            LTC6811_Adax(MD_NORMAL,DCP_ENABLED,AUX_CH_ALL);  	//启动温度转换
+        }
 		break;
-
 	case AFE_READ_TEMP:
         if(!LTC6811_ReadAux(0,g_ArrayLtc6811Unit.temperature))
         {
+        	LTC6811_ReadAux(0,g_ArrayLtc6811Unit.temperature);
 			AfeState = AFE_BALANCE;
 			g_SystemError.ltc_com = 0;
 			ComErrCnt = 5;
@@ -790,9 +783,37 @@ void TskAfeMgt(void)
 			}
         }
         GPIO_VoltConvert(g_ArrayLtc6811Unit.temperature);
-        AfeState = AFE_BALANCE;					// AFE_CAL_TEMP;
+        AfeState = AFE_STAT_CNVT;					// AFE_CAL_TEMP;
 		break;
-		
+	case AFE_STAT_CNVT:
+		LTC6811_Adstat(MD_NORMAL,STAT_ALL);
+		AfeState = AFE_READ_STAT;
+        break;
+	case AFE_READ_STAT:
+		if(!LTC6811_ReadCellStat(0,g_ArrayLtc6811Unit.status))
+		{
+			AfeState = AFE_BALANCE;
+		}
+		else
+		{
+			AfeState = AFE_STAT_CNVT;
+
+			/* mcu与ltc6803 spi通信错误检测 */
+			if (ComErrCnt)
+			{
+				ComErrCnt--;
+			}
+			else 
+			{
+				g_SystemError.ltc_com = 1;
+				g_FaultRecord.ltc_com ++;
+				if (g_ProtectDelayCnt > RELAY_ACTION_DELAY_1S)
+				{
+					g_ProtectDelayCnt = RELAY_ACTION_DELAY_1S;
+				}
+			}
+		}
+        break;
 	case AFE_BALANCE:
 		TskBlncMgt();
 		AfeState = AFE_VOLT_CNVT;

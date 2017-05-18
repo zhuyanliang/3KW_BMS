@@ -31,7 +31,8 @@ void Gpio_Init(void)
 	TRISDbits.TRISD7 = 0b0;		// 充电使能管脚
 	TRISEbits.TRISE1 = 0b0;		// 放电使能管脚
 
-	PowerOn();
+	if(Button)
+		PowerOn();
 	BeepOff();
 }
 
@@ -79,4 +80,33 @@ void TskBeepMgt(void)
 }
 
 
+void TskMOSFETMgt(void)
+{
+#if 0
+	if((IDLE == g_BatteryMode) || (PROTECTION == g_BatteryMode))
+	{
+		ChargeDisEn();
+		DischargeDisEn();
+	}
+	else if(DISCHARGE == g_BatteryMode)
+	{
+		DischargeEn();
+	}
+	else if(CHARGE == g_BatteryMode)
+	{
+		ChargeEn();
+	}
+#endif
+	if(Button)
+	{
+		ChargeEn();
+		DischargeEn();
+	}
+	else
+	{
+		ChargeDisEn();
+		DischargeDisEn();
+		PowerOff();
+	}
+}
 

@@ -1,5 +1,6 @@
 #include "include.h"
 
+int16_t  g_CurrentOffset = 0; //电流的校准偏移
 AdcRawTypedef g_AdcConvertValue; 
 
 // ADC值与温度的对照表 AD值为mV
@@ -139,8 +140,9 @@ void CurrentZeroOffsetAdjust(void)
 		}
 
 		g_AdcConvertValue.CurAvg = ADC_AverageCalculate(g_AdcConvertValue.Current);
-		//g_CurrentOffset += (int16_t)((((int32_t)g_AdcConvertValue.CurAvg * 6250) >> 12) - 3125);
+		g_CurrentOffset += g_AdcConvertValue.CurAvg;
 	}
+	g_CurrentOffset = g_CurrentOffset/8;
 }
 
 

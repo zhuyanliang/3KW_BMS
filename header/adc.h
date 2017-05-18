@@ -69,7 +69,8 @@ const CurrWarnClsDef BattCOCThrDefault = {-220, -250, 0}; // 0.1A
 const CurrWarnClsDef BattDOCThrDefault = {2000, 2500, 0}; // 0.1A
 
 extern AdcRawTypedef g_AdcConvertValue;   
-    
+extern int16_t  g_CurrentOffset; //电流的校准偏移
+
 void ADC_IOInit(void);
 void ADC_Convert(uint8_t channel);
 uint16_t ADC_GetCvtRaw(void);
