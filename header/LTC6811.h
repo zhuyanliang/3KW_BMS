@@ -165,7 +165,7 @@ void 		LTC6811_WriteCfgReg(void);
 void 		LTC6811_Adcv(uint8_t MD,uint8_t DCP, uint8_t CH);
 uint8_t 	LTC6811_ReadCellVolt(uint8_t reg,uint16_t cell_codes[ModuleAmount][12]);
 void 		LTC6811_Rdcv_Reg(uint8_t reg,uint8_t *data);
-void 		LTC6811_Adax(uint8_t MD,uint8_t DCP,uint8_t CHG);
+void 		LTC6811_Adax(uint8_t MD,uint8_t CHG);
 int8_t 		LTC6811_ReadAux(uint8_t reg,uint16_t aux_codes[ModuleAmount][6]);
 void 		LTC6811_Rdaux_Reg(uint8_t reg,uint8_t *data);
 void 		LTC6811_Adstat(uint8_t MD,uint8_t ST);

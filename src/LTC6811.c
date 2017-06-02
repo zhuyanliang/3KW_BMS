@@ -178,8 +178,11 @@ void LTC6811_Initialize(void)
 		}
 	}
 	
-	g_Ltc6811CfgReg[0].cfgr[0] = 0x06;
-    g_Ltc6811CfgReg[1].cfgr[0] = 0x06;
+	g_Ltc6811CfgReg[0].cfgr[0] = 0xFE;
+    g_Ltc6811CfgReg[1].cfgr[0] = 0xFE;
+
+    g_Ltc6811CfgReg[0].cfgr[5] = 0x20;
+    g_Ltc6811CfgReg[1].cfgr[5] = 0x20;
 
 	DelayMs(50);//延时200ms等待ltc6811电源稳定
 	LTC6811_WriteCfgReg();
@@ -439,9 +442,9 @@ Command Code:
 
 |CMD[0:1]	|  15   |  14   |  13   |  12   |  11   |  10   |   9   |   8   |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   | 
 |---------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
-|g_ADAX:	|   0   |   0   |   0   |   0   |   0   |   1   |   0   | MD[1] | MD[2] |   1   |   1   |  DCP  |   0   | CHG[2]| CHG[1]| CHG[0]| 
+|g_ADAX:	|   0   |   0   |   0   |   0   |   0   |   1   |   0   | MD[1] | MD[2] |   1   |   1   |   0   |   0   | CHG[2]| CHG[1]| CHG[0]| 
 *********************************************************************************************************/
-void LTC6811_Adax(uint8_t MD,uint8_t DCP,uint8_t CHG)
+void LTC6811_Adax(uint8_t MD,uint8_t CHG)
 {
 	uint8_t cmd[4];
 	uint16_t cmd_pec;
@@ -450,7 +453,7 @@ void LTC6811_Adax(uint8_t MD,uint8_t DCP,uint8_t CHG)
 	md_bits = (MD & 0x02) >> 1;
 	cmd[0]  = md_bits + 0x04;
 	md_bits = (MD & 0x01) << 7;
-	cmd[1] = md_bits + 0x60 + (DCP<<4) + CHG;
+	cmd[1] = md_bits + 0x60 + CHG;
 
 	cmd_pec = Pec15_Calc(2, cmd);
 	cmd[2] = (uint8_t)(cmd_pec >> 8);
