@@ -178,15 +178,15 @@ void LTC6811_Initialize(void)
 		}
 	}
 	
-	g_Ltc6811CfgReg[0].cfgr[0] = 0xFE;
-    g_Ltc6811CfgReg[1].cfgr[0] = 0xFE;
+	g_Ltc6811CfgReg[0].cfgr[0] = 0x02;
+    g_Ltc6811CfgReg[1].cfgr[0] = 0x02;
 
-    g_Ltc6811CfgReg[0].cfgr[5] = 0x20;
-    g_Ltc6811CfgReg[1].cfgr[5] = 0x20;
+    g_Ltc6811CfgReg[0].cfgr[5] = 0x00;
+    g_Ltc6811CfgReg[1].cfgr[5] = 0x00;
 
-	DelayMs(50);//延时200ms等待ltc6811电源稳定
+	DelayMs(50);//延时50ms等待ltc6811电源稳定
 	LTC6811_WriteCfgReg();
-	DelayMs(50);
+	DelayMs(10);
 }
 
 

@@ -900,12 +900,12 @@ void TskAfeMgt(void)
 		AfeState = AFE_VOLT_CNVT;
 		break;
 	}
-	#if 0
+#if 0
 	g_Ltc6811CfgReg[0].cfgr[0] = 0x04;
     g_Ltc6811CfgReg[1].cfgr[0] = 0x04;
 
 	LTC6811_WriteCfgReg();
-	#endif
+#endif
 }
 
 //----------------------------------------------------------------------------
