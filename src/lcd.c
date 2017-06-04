@@ -76,15 +76,10 @@ void LCD_DisplayDriver(void)
 void TskLcdShow(void)
 {
 	static uint8_t cnt;
-	static uint8_t num = 0;
-	if(cnt ++ > 200)
-	{
-		cnt = 0;
-		if(num++ > 99)
-			num = 0;
-        g_LcdBuf[0] = g_LcdCharTable[num/10];
-        g_LcdBuf[1] = g_LcdCharTable[num%10];
-	}
+
+    g_LcdBuf[0] = g_LcdCharTable[g_BatteryParameter.SOC/10];
+    g_LcdBuf[1] = g_LcdCharTable[g_BatteryParameter.SOC%10];
+	
 	
 }
 
